@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
@@ -10,6 +11,12 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Don't render the dashboard layout for the login page
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen bg-background flex">

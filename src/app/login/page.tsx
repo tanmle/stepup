@@ -2,8 +2,8 @@ import React from 'react';
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-container p-md">
-      <div className="card max-w-sm w-full p-xl flex flex-col items-center">
+    <div className="min-h-screen w-full flex items-center justify-center bg-surface-container p-md">
+      <div className="card w-[384px] max-w-full p-xl flex flex-col items-center">
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center shadow-md mb-lg">
           <span className="material-symbols-outlined text-on-primary text-[24px]">bolt</span>
         </div>

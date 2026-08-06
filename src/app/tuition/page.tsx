@@ -141,9 +141,49 @@ export default function TuitionPage() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* List Container */}
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile Card View */}
+        <div className="md:hidden flex flex-col divide-y divide-outline-variant/10">
+          {paginated.map((record) => (
+            <div key={record.id} className={`p-md flex flex-col gap-sm transition-colors ${record.status === 'Quá hạn' ? 'bg-error-container/10' : 'hover:bg-surface-container-low'}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-body-lg font-semibold text-on-surface leading-tight">{record.student.fullName}</h3>
+                  <p className="text-label-sm text-on-surface-variant">Lớp: {record.className}</p>
+                </div>
+                <StatusBadge status={record.status} />
+              </div>
+              
+              <div className="flex flex-col gap-xs mt-xs bg-surface-container-low p-sm rounded-lg">
+                <div className="flex justify-between items-center text-label-sm">
+                  <span className="text-on-surface-variant">Tổng học phí:</span>
+                  <span className="font-medium text-on-surface">{record.totalTuition.toLocaleString('vi-VN')}đ</span>
+                </div>
+                <div className="flex justify-between items-center text-label-sm">
+                  <span className="text-on-surface-variant">Đã nộp:</span>
+                  <span className="font-medium text-primary">{record.amountPaid.toLocaleString('vi-VN')}đ</span>
+                </div>
+                <div className="flex justify-between items-center text-label-sm">
+                  <span className="text-on-surface-variant">Còn nợ:</span>
+                  <span className={`font-semibold ${record.amountOwed > 0 ? 'text-error' : 'text-emerald-600'}`}>{record.amountOwed.toLocaleString('vi-VN')}đ</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between mt-xs">
+                <span className="text-label-sm text-on-surface-variant">
+                  Hạn nộp: <span className={record.status === 'Quá hạn' ? 'text-error font-medium' : ''}>{record.dueDate}</span>
+                </span>
+                <button className="text-primary font-label-sm flex items-center gap-1">
+                  Thu tiền <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[1000px]">
             <thead>
               <tr className="border-b border-outline-variant/20 bg-surface-container-low/50">

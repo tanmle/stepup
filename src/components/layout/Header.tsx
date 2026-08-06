@@ -13,16 +13,27 @@ const BREADCRUMB_MAP: Record<string, string> = {
   '/settings': 'Cài đặt',
 };
 
-export default function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+export default function Header({ onMenuClick }: HeaderProps) {
   const pathname = usePathname();
   const [notifOpen, setNotifOpen] = useState(false);
 
   const title = BREADCRUMB_MAP[pathname] ?? 'StepUp';
 
   return (
-    <header className="fixed top-0 left-sidebar right-0 h-16 glass-header z-40 flex items-center justify-between px-xl shadow-header">
-      {/* Left: Search */}
-      <div className="w-64 md:w-96">
+    <header className="fixed top-0 left-0 lg:left-sidebar right-0 h-16 glass-header z-40 flex items-center justify-between px-md lg:px-xl shadow-header transition-all duration-300">
+      {/* Left: Search & Menu */}
+      <div className="flex-1 flex items-center gap-sm">
+        <button 
+          onClick={onMenuClick}
+          className="lg:hidden p-sm rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors"
+        >
+          <span className="material-symbols-outlined text-[24px]">menu</span>
+        </button>
+        <div className="w-48 sm:w-64 md:w-96 hidden sm:block">
         <div className="relative flex items-center bg-surface-container-low hover:bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-2 transition-all duration-200 cursor-text group">
           <span className="material-symbols-outlined text-on-surface-variant mr-2 text-[18px]">
             search
@@ -41,6 +52,7 @@ export default function Header() {
             </kbd>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Right: Actions */}

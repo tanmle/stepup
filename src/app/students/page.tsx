@@ -100,9 +100,44 @@ export default function StudentsPage() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* List Container */}
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile Card View */}
+        <div className="md:hidden flex flex-col divide-y divide-outline-variant/10">
+          {paginated.map((student) => (
+            <div key={student.id} className="p-md flex flex-col gap-sm hover:bg-surface-container-low transition-colors cursor-pointer" onClick={() => window.location.href = `/students/${student.id}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-sm">
+                  <div className={`w-10 h-10 rounded-full flex flex-shrink-0 items-center justify-center font-bold text-sm ${student.avatarColor}`}>
+                    {student.avatarInitials}
+                  </div>
+                  <div>
+                    <h3 className="text-body-lg font-semibold text-on-surface leading-tight">{student.fullName}</h3>
+                    <p className="text-label-sm font-mono text-primary/80">{student.code}</p>
+                  </div>
+                </div>
+                <StatusBadge status={student.status} />
+              </div>
+              <div className="grid grid-cols-2 gap-xs text-label-sm text-on-surface-variant mt-xs">
+                <div className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">phone</span>
+                  {student.phone}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">cake</span>
+                  {student.dateOfBirth}
+                </div>
+                <div className="flex items-center gap-1 col-span-2">
+                  <span className="material-symbols-outlined text-[14px]">family_restroom</span>
+                  {student.parents[0]?.fullName} ({student.parents[0]?.phone})
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-outline-variant/20 bg-surface-container-low/50">

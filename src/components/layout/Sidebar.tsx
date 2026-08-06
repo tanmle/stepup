@@ -3,6 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
 const NAV_ITEMS = [
   { label: 'Tổng quan', icon: 'home', href: '/dashboard' },
   { label: 'Quản lý học viên', icon: 'school', href: '/students' },
@@ -13,14 +18,16 @@ const NAV_ITEMS = [
 
 const BOTTOM_NAV = [{ label: 'Cài đặt', icon: 'settings', href: '/settings' }];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   const isActive = (href: string) =>
     pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-sidebar glass-sidebar z-50 flex flex-col shadow-sidebar">
+    <aside className={`fixed top-0 h-full w-sidebar glass-sidebar z-50 flex flex-col shadow-sidebar transition-transform duration-300 ${
+      isOpen ? 'translate-x-0' : '-translate-x-full'
+    } lg:translate-x-0 left-0`}>
       {/* Logo */}
       <div className="h-16 flex items-center px-lg gap-sm border-b border-outline-variant/20">
         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center shadow-md">
@@ -43,6 +50,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={`nav-link ${active ? 'nav-link-active' : ''}`}
             >
               <span

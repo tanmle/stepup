@@ -102,9 +102,52 @@ export default function TeachersPage() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* List Container */}
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile Card View */}
+        <div className="md:hidden flex flex-col divide-y divide-outline-variant/10">
+          {paginated.map((teacher) => (
+            <div key={teacher.id} className="p-md flex flex-col gap-sm hover:bg-surface-container-low transition-colors cursor-pointer" onClick={() => window.location.href = `/teachers/${teacher.id}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-sm">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 ${teacher.avatarColor}`}>
+                    {teacher.avatarInitials}
+                  </div>
+                  <div>
+                    <h3 className="text-body-lg font-medium text-on-surface leading-tight">{teacher.fullName}</h3>
+                    <p className="text-label-sm font-mono text-primary/80">{teacher.code}</p>
+                  </div>
+                </div>
+                <StatusBadge status={teacher.status} />
+              </div>
+              <div className="flex flex-wrap gap-xs mt-xs">
+                {teacher.specializations.slice(0, 2).map((s) => (
+                  <span key={s} className="text-label-sm bg-secondary-container text-on-secondary-container px-sm py-xs rounded-full">
+                    {s}
+                  </span>
+                ))}
+                {teacher.certificates.slice(0, 1).map((c) => (
+                  <span key={c} className="text-label-sm bg-primary/10 text-primary px-sm py-xs rounded-full">
+                    {c}
+                  </span>
+                ))}
+              </div>
+              <div className="flex items-center justify-between mt-xs text-label-sm text-on-surface-variant">
+                <div className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px] text-amber-500">star</span>
+                  {teacher.rating}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">groups</span>
+                  {teacher.currentClasses.length} lớp
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-outline-variant/20 bg-surface-container-low/50">

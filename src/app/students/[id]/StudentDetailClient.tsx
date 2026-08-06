@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
+import { deleteStudent, enrollStudent } from '../actions';
+import { useRouter } from 'next/navigation';
 import StatusBadge from '@/components/ui/StatusBadge';
 
 const TABS = [
@@ -13,25 +15,43 @@ const TABS = [
 
 interface StudentDetailClientProps {
   student: any;
+  availableClasses?: any[];
 }
 
-export default function StudentDetailClient({ student }: StudentDetailClientProps) {
+export default function StudentDetailClient({ student, availableClasses = [] }: StudentDetailClientProps) {
   const [activeTab, setActiveTab] = useState('overview');
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedClassId, setSelectedClassId] = useState('');
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+
+  const handleDelete = () => {
+    startTransition(async () => {
+      try {
+        await deleteStudent(student.id);
+        router.push('/students');
+      } catch (e) {
+        alert('Có lỗi xảy ra khi xóa');
+      }
+    });
+  };
 
   if (!student) return null;
 
   const primaryCourse = student.enrolledCourses?.[0];
 
   return (
-    <div className="flex flex-col gap-md pb-xl animate-fade-in">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-xs text-label-sm text-on-surface-variant">
-        <Link href="/dashboard" className="hover:text-primary transition-colors">Trang chủ</Link>
-        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <Link href="/students" className="hover:text-primary transition-colors">Quản lý học viên</Link>
-        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <span className="text-on-surface font-medium">{student.fullName}</span>
-      </nav>
+    <>
+      <div className="flex flex-col gap-md pb-xl animate-fade-in">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-xs text-label-sm text-on-surface-variant">
+          <Link href="/dashboard" className="hover:text-primary transition-colors">Trang chủ</Link>
+          <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+          <Link href="/students" className="hover:text-primary transition-colors">Quản lý học viên</Link>
+          <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+          <span className="text-on-surface font-medium">{student.fullName}</span>
+        </nav>
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-md">
@@ -191,11 +211,20 @@ export default function StudentDetailClient({ student }: StudentDetailClientProp
 
               {activeTab === 'courses' && (
                 <div>
-                  <h3 className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-md">
-                    Khóa học đã đăng ký
-                  </h3>
+                  <div className="flex items-center justify-between mb-md">
+                    <h3 className="text-label-sm text-on-surface-variant uppercase tracking-wider">
+                      Khóa học đã đăng ký
+                    </h3>
+                    <button 
+                      onClick={() => setShowEnrollModal(true)}
+                      className="btn-primary py-1 px-3 text-label-sm"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">add</span>
+                      Đăng ký lớp mới
+                    </button>
+                  </div>
                   {student.enrolledCourses?.length === 0 ? (
-                    <p className="text-body-md text-on-surface-variant text-center py-xl">Chưa đăng ký khóa học nào</p>
+                    <p className="text-body-md text-on-surface-variant text-center py-xl bg-surface-container-low rounded-xl border border-dashed border-outline-variant">Chưa đăng ký khóa học nào</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -308,7 +337,93 @@ export default function StudentDetailClient({ student }: StudentDetailClientProp
             </div>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-md">
+          <div className="absolute inset-0 bg-scrim/30 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
+          <div className="card w-[384px] max-w-[90vw] p-lg relative animate-slide-up">
+            <h3 className="text-title-lg text-on-background mb-xs">Xác nhận xóa</h3>
+            <p className="text-body-md text-on-surface-variant mb-lg">
+              Bạn có chắc chắn muốn xóa học viên <span className="font-semibold text-on-surface">{student.fullName}</span>?
+              Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex items-center justify-end gap-sm">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isPending}
+                className="btn-secondary"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isPending}
+                className="btn-primary !bg-error hover:!bg-error/90"
+              >
+                {isPending ? 'Đang xóa...' : 'Xóa học viên'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Enroll Modal */}
+      {showEnrollModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-md">
+          <div className="absolute inset-0 bg-scrim/30 backdrop-blur-sm" onClick={() => !isPending && setShowEnrollModal(false)} />
+          <div className="card w-[448px] max-w-[90vw] p-lg relative animate-slide-up">
+            <h3 className="text-title-lg text-on-background mb-xs">Đăng ký lớp học mới</h3>
+            <p className="text-body-md text-on-surface-variant mb-lg">Chọn lớp học để ghi danh cho học viên.</p>
+            
+            <div className="mb-lg">
+              <label className="text-label-sm text-on-surface-variant mb-xs block">Lớp học</label>
+              <select 
+                value={selectedClassId} 
+                onChange={(e) => setSelectedClassId(e.target.value)}
+                className="input-field w-full"
+                disabled={isPending}
+              >
+                <option value="">-- Chọn lớp học --</option>
+                {availableClasses.map(cls => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name} (Mã: {cls.code}) - {cls.price ? `${cls.price.toLocaleString('vi-VN')} đ` : 'Chưa có giá'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center justify-end gap-sm">
+              <button
+                onClick={() => setShowEnrollModal(false)}
+                disabled={isPending}
+                className="btn-secondary"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  if (!selectedClassId) return alert('Vui lòng chọn lớp học');
+                  startTransition(async () => {
+                    try {
+                      await enrollStudent(student.id, selectedClassId);
+                      setShowEnrollModal(false);
+                      setSelectedClassId('');
+                    } catch (e: any) {
+                      alert(e.message);
+                    }
+                  });
+                }}
+                disabled={isPending || !selectedClassId}
+                className="btn-primary"
+              >
+                {isPending ? 'Đang xử lý...' : 'Đăng ký ngay'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

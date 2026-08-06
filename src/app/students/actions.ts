@@ -96,6 +96,7 @@ export async function addStudent(formData: FormData) {
   // If a class was selected, create an enrollment
   const classId = formData.get('classId') as string;
   if (classId && student.id) {
+    // Insert enrollment
     await supabase.from('enrollments').insert([
       {
         student_id: student.id,
@@ -106,6 +107,21 @@ export async function addStudent(formData: FormData) {
         status: 'Đang học',
       }
     ]);
+
+    // Fetch class price to generate tuition record
+    const { data: cls } = await supabase.from('classes').select('price').eq('id', classId).single();
+    if (cls) {
+      await supabase.from('tuition_records').insert([
+        {
+          student_id: student.id,
+          class_id: classId,
+          total_tuition: cls.price || 0,
+          amount_paid: 0,
+          amount_owed: cls.price || 0,
+          status: 'Chưa thu',
+        }
+      ]);
+    }
   }
 
   revalidatePath('/students');
@@ -128,6 +144,46 @@ export async function deleteStudent(id: string) {
   revalidatePath('/students');
 }
 
+export async function enrollStudent(studentId: string, classId: string) {
+  const supabase = await createClient();
+
+  // 1. Insert enrollment
+  const { error: enrollError } = await supabase.from('enrollments').insert([
+    {
+      student_id: studentId,
+      class_id: classId,
+      sessions_completed: 0,
+      sessions_total: 24, // default mock value
+      attendance_rate: 100,
+      status: 'Đang học',
+    }
+  ]);
+
+  if (enrollError) {
+    console.error('Error enrolling student:', enrollError);
+    throw new Error('Failed to enroll student');
+  }
+
+  // 2. Fetch class price and create tuition record
+  const { data: cls } = await supabase.from('classes').select('price').eq('id', classId).single();
+  
+  if (cls) {
+    await supabase.from('tuition_records').insert([
+      {
+        student_id: studentId,
+        class_id: classId,
+        total_tuition: cls.price || 0,
+        amount_paid: 0,
+        amount_owed: cls.price || 0,
+        status: 'Chưa thu',
+      }
+    ]);
+  }
+
+  revalidatePath(`/students/${studentId}`);
+  return { success: true };
+}
+
 export async function updateStudent(id: string, formData: FormData) {
   const supabase = await createClient();
 
@@ -137,6 +193,7 @@ export async function updateStudent(id: string, formData: FormData) {
   const phone = formData.get('phone') as string;
   const email = formData.get('email') as string;
   const address = formData.get('address') as string;
+  const status = formData.get('status') as string;
 
   const { error } = await supabase
     .from('students')
@@ -147,6 +204,7 @@ export async function updateStudent(id: string, formData: FormData) {
       phone,
       email,
       address,
+      status,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id);

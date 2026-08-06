@@ -16,6 +16,10 @@ export default async function StudentsPage() {
       *,
       student_parents(
         parents(full_name)
+      ),
+      enrollments(
+        status,
+        classes(name, code)
       )
     `)
     .order('created_at', { ascending: false });
@@ -42,6 +46,7 @@ export default async function StudentsPage() {
     parents: s.student_parents?.length > 0 ? s.student_parents.map((sp: any) => ({
       fullName: sp.parents?.full_name || '—'
     })) : [],
+    enrolledClasses: s.enrollments ? s.enrollments.filter((e: any) => e.status === 'Đang học').map((e: any) => e.classes?.name) : [],
   }));
 
   return <StudentsClient initialStudents={formattedStudents} />;

@@ -159,8 +159,18 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
                 </div>
                 <div className="flex items-center gap-1 col-span-2">
                   <span className="material-symbols-outlined text-[14px]">family_restroom</span>
-                  {student.parents[0]?.fullName} ({student.parents[0]?.phone})
+                  {student.parents[0]?.fullName ? `${student.parents[0].fullName} (${student.parents[0].phone || ''})` : '—'}
                 </div>
+                {student.enrolledClasses?.length > 0 && (
+                  <div className="flex items-center gap-1 col-span-2 flex-wrap">
+                    <span className="material-symbols-outlined text-[14px]">class</span>
+                    {student.enrolledClasses.map((c: string) => (
+                      <span key={c} className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex justify-end border-t border-outline-variant/10 pt-sm mt-sm">
                 <button 
@@ -198,6 +208,9 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
                 </th>
                 <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
                   Số điện thoại
+                </th>
+                <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
+                  Lớp học
                 </th>
                 <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
                   Trạng thái
@@ -258,6 +271,19 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
                   </td>
                   <td className="px-md py-md">
                     <span className="font-mono text-body-md text-on-surface">{student.phone}</span>
+                  </td>
+                  <td className="px-md py-md">
+                    {student.enrolledClasses?.length > 0 ? (
+                      <div className="flex flex-col gap-1">
+                        {student.enrolledClasses.map((c: string) => (
+                          <span key={c} className="text-[11px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-md w-fit whitespace-nowrap">
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-body-md text-on-surface-variant">—</span>
+                    )}
                   </td>
                   <td className="px-md py-md">
                     <StatusBadge status={student.status} />

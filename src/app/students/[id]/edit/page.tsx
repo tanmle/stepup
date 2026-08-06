@@ -33,6 +33,7 @@ export default async function EditStudentPage({ params }: Props) {
     phone: s.phone || '',
     email: s.email || '',
     address: s.address || '',
+    status: s.status || 'Đang học',
   };
 
   return <EditStudentClient student={formattedStudent} />;

@@ -19,6 +19,7 @@ export default function EditStudentClient({ student }: EditStudentClientProps) {
     phone: student.phone || '',
     email: student.email || '',
     address: student.address || '',
+    status: student.status || 'Đang học',
   });
 
   const handleChange = (field: string, value: string) => {
@@ -125,13 +126,30 @@ export default function EditStudentClient({ student }: EditStudentClientProps) {
           </div>
         </div>
 
-        <div>
-          <label className="text-label-sm text-on-surface-variant mb-xs block">Địa chỉ thường trú</label>
-          <input
-            value={form.address}
-            onChange={(e) => handleChange('address', e.target.value)}
-            className="input-field w-full"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">Địa chỉ thường trú</label>
+            <input
+              value={form.address}
+              onChange={(e) => handleChange('address', e.target.value)}
+              className="input-field w-full"
+            />
+          </div>
+
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">Trạng thái học tập <span className="text-error">*</span></label>
+            <select
+              required
+              value={form.status}
+              onChange={(e) => handleChange('status', e.target.value)}
+              className="input-field w-full"
+            >
+              <option value="Đang học">Đang học</option>
+              <option value="Tạm nghỉ">Tạm nghỉ</option>
+              <option value="Đã nghỉ">Đã nghỉ</option>
+              <option value="Hoàn thành">Hoàn thành</option>
+            </select>
+          </div>
         </div>
 
         {/* Footer Actions */}

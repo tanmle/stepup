@@ -21,6 +21,10 @@ export default async function StudentDetailPage({ params }: Props) {
       student_parents(
         relationship,
         parents(id, full_name, phone, email)
+      ),
+      enrollments(
+        status, sessions_completed, sessions_total, attendance_rate,
+        classes(id, name, code, schedule, teachers(full_name))
       )
     `)
     .eq('id', id)
@@ -55,10 +59,28 @@ export default async function StudentDetailPage({ params }: Props) {
       phone: sp.parents.phone,
       email: sp.parents.email || '',
     })) : [],
-    enrolledCourses: [],
+    // Format enrollments
+    enrolledCourses: s.enrollments ? s.enrollments.map((e: any) => ({
+      classId: e.classes.id,
+      className: e.classes.name,
+      classCode: e.classes.code,
+      schedule: e.classes.schedule,
+      teacher: e.classes.teachers?.full_name || 'Chưa xếp',
+      sessionsCompleted: e.sessions_completed,
+      sessionsTotal: e.sessions_total,
+      attendanceRate: e.attendance_rate,
+      status: e.status,
+    })) : [],
     payments: [],
     notes: [],
   };
 
-  return <StudentDetailClient student={formattedStudent} />;
+  // Fetch available classes for new enrollment
+  const { data: availableClasses } = await supabase
+    .from('classes')
+    .select('id, name, code, price')
+    .in('status', ['Sắp mở', 'Đang học'])
+    .order('created_at', { ascending: false });
+
+  return <StudentDetailClient student={formattedStudent} availableClasses={availableClasses || []} />;
 }

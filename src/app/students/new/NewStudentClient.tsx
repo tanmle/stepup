@@ -12,25 +12,14 @@ const STEPS = [
   { id: 4, label: 'Xác nhận', icon: 'check_circle' },
 ];
 
-const COURSES = [
-  { id: 'ielts-foundation', name: 'IELTS Foundation', description: 'Nền tảng IELTS cho người mới bắt đầu (mục tiêu 5.0-5.5)', price: 7500000, duration: '3 tháng' },
-  { id: 'ielts-intensive', name: 'IELTS Intensive', description: 'Luyện thi IELTS chuyên sâu (mục tiêu 6.5-7.5)', price: 9500000, duration: '4 tháng' },
-  { id: 'toeic-650', name: 'TOEIC 650+', description: 'Đạt điểm TOEIC 650 trở lên trong 3 tháng', price: 8500000, duration: '3 tháng' },
-  { id: 'communication-basic', name: 'Giao tiếp Cơ bản', description: 'Tiếng Anh giao tiếp căn bản cho người mất gốc', price: 4000000, duration: '2 tháng' },
-];
 
-const CLASSES: Record<string, string[]> = {
-  'ielts-foundation': ['IELTS-5.0-A (T2,T4,T6 sáng)', 'IELTS-5.0-B (T3,T5,T7 chiều)', 'IELTS-5.5-C (T2,T4,T6 tối)'],
-  'ielts-intensive': ['IELTS-6.5-A (T3,T5,T7 tối)', 'IELTS-7.0-A (T2,T4,T6 tối)', 'IELTS-7.0-B (T3,T5 chiều)'],
-  'toeic-650': ['TOEIC-650-A (T2,T4,T6 chiều)', 'TOEIC-650-B (T3,T5 tối)'],
-  'communication-basic': ['COMM-A1-A (T3,T5 sáng)', 'COMM-A1-B (T7,CN sáng)'],
-};
 
 interface NewStudentClientProps {
   parents: any[];
+  classes: any[];
 }
 
-export default function NewStudentClient({ parents }: NewStudentClientProps) {
+export default function NewStudentClient({ parents, classes }: NewStudentClientProps) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     fullName: '', dateOfBirth: '', gender: '', phone: '', email: '',
@@ -38,7 +27,7 @@ export default function NewStudentClient({ parents }: NewStudentClientProps) {
     courseId: '', classId: '', parentId: '',
   });
 
-  const selectedCourse = COURSES.find((c) => c.id === form.courseId);
+  const selectedClass = classes.find((c) => c.id === form.classId);
 
   const handleChange = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -284,65 +273,52 @@ export default function NewStudentClient({ parents }: NewStudentClientProps) {
         {/* Step 3 - Course Registration */}
         {step === 3 && (
           <div className="animate-fade-in">
-            <h2 className="text-title-lg text-on-background mb-lg">Đăng ký khóa học</h2>
-            <div className="grid grid-cols-2 gap-md mb-lg">
-              {COURSES.map((course) => (
-                <button
-                  key={course.id}
-                  onClick={() => { handleChange('courseId', course.id); handleChange('classId', ''); }}
-                  className={`text-left p-md rounded-xl border-2 transition-all duration-200 ${
-                    form.courseId === course.id
-                      ? 'border-primary bg-primary/5 shadow-sm'
-                      : 'border-outline-variant/30 hover:border-primary/30 hover:bg-surface-container-low'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-body-lg font-semibold text-on-background">{course.name}</p>
-                      <p className="text-body-md text-on-surface-variant mt-xs">{course.description}</p>
+            <h2 className="text-title-lg text-on-background mb-lg">Đăng ký lớp học</h2>
+            
+            {classes.length === 0 ? (
+              <p className="text-body-md text-on-surface-variant">Không có lớp học nào đang mở.</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-md mb-lg">
+                {classes.map((cls) => (
+                  <button
+                    key={cls.id}
+                    onClick={() => handleChange('classId', cls.id)}
+                    className={`text-left p-md rounded-xl border-2 transition-all duration-200 ${
+                      form.classId === cls.id
+                        ? 'border-primary bg-primary/5 shadow-sm'
+                        : 'border-outline-variant/30 hover:border-primary/30 hover:bg-surface-container-low'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-body-lg font-semibold text-on-background">{cls.name}</p>
+                        <p className="text-body-md text-on-surface-variant mt-xs">Mã: {cls.code} | {cls.program}</p>
+                      </div>
+                      {form.classId === cls.id && (
+                        <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                          check_circle
+                        </span>
+                      )}
                     </div>
-                    {form.courseId === course.id && (
-                      <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                        check_circle
+                    <div className="flex items-center gap-md mt-md">
+                      <span className="text-label-sm bg-primary/10 text-primary px-sm py-xs rounded-md">
+                        {cls.price ? `${cls.price.toLocaleString('vi-VN')} đ` : 'Chưa cập nhật giá'}
                       </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-md mt-md">
-                    <span className="text-label-sm bg-primary/10 text-primary px-sm py-xs rounded-md">
-                      {course.price.toLocaleString('vi-VN')} đ
-                    </span>
-                    <span className="text-label-sm text-on-surface-variant">
-                      <span className="material-symbols-outlined text-[14px] align-middle">schedule</span>
-                      {' '}{course.duration}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
 
-            {form.courseId && (
+            {selectedClass && (
               <div className="animate-fade-in">
-                <label className="text-label-sm text-on-surface-variant mb-xs block">Chọn lớp</label>
-                <select
-                  value={form.classId}
-                  onChange={(e) => handleChange('classId', e.target.value)}
-                  className="input-field"
-                >
-                  <option value="">Chọn lịch học phù hợp</option>
-                  {(CLASSES[form.courseId] ?? []).map((cls) => (
-                    <option key={cls} value={cls}>{cls}</option>
-                  ))}
-                </select>
-
-                {selectedCourse && (
-                  <div className="mt-md p-md bg-primary/5 rounded-xl border border-primary/20">
-                    <p className="text-label-sm text-primary font-semibold">Học phí dự tính</p>
-                    <p className="text-[24px] font-bold text-primary mt-xs">
-                      {selectedCourse.price.toLocaleString('vi-VN')} <span className="text-body-md">đồng</span>
-                    </p>
-                    <p className="text-label-sm text-on-surface-variant mt-xs">* Chưa bao gồm chi phí sách giáo trình</p>
-                  </div>
-                )}
+                <div className="mt-md p-md bg-primary/5 rounded-xl border border-primary/20">
+                  <p className="text-label-sm text-primary font-semibold">Học phí dự tính</p>
+                  <p className="text-[24px] font-bold text-primary mt-xs">
+                    {selectedClass.price ? selectedClass.price.toLocaleString('vi-VN') : '0'} <span className="text-body-md">đồng</span>
+                  </p>
+                  <p className="text-label-sm text-on-surface-variant mt-xs">* Sẽ tự động tạo hóa đơn học phí khi hoàn tất ghi danh</p>
+                </div>
               </div>
             )}
           </div>
@@ -369,9 +345,8 @@ export default function NewStudentClient({ parents }: NewStudentClientProps) {
                 { label: 'Ngày sinh', value: form.dateOfBirth || '(chưa điền)' },
                 { label: 'Số điện thoại', value: form.phone || '(chưa điền)' },
                 { label: 'Phụ huynh', value: form.parentName || '(chưa điền)' },
-                { label: 'Khóa học', value: selectedCourse?.name ?? '(chưa chọn)' },
-                { label: 'Lớp', value: form.classId || '(chưa chọn)' },
-                { label: 'Học phí', value: selectedCourse ? `${selectedCourse.price.toLocaleString('vi-VN')} đ` : '—' },
+                { label: 'Lớp đăng ký', value: selectedClass ? selectedClass.name : '(chưa chọn)' },
+                { label: 'Học phí', value: selectedClass && selectedClass.price ? `${selectedClass.price.toLocaleString('vi-VN')} đ` : '0 đ' },
               ].map((item) => (
                 <div key={item.label} className="p-md bg-surface-container-low rounded-xl border border-outline-variant/20 flex flex-col justify-center">
                   <span className="text-label-sm text-on-surface-variant mb-xs">{item.label}</span>

@@ -18,5 +18,16 @@ export default async function NewStudentPage() {
     console.error('Error fetching parents:', error);
   }
 
-  return <NewStudentClient parents={parents || []} />;
+  // Fetch active or upcoming classes
+  const { data: classes, error: classesError } = await supabase
+    .from('classes')
+    .select('id, name, code, program, capacity, price')
+    .in('status', ['Đang học', 'Sắp mở'])
+    .order('created_at', { ascending: false });
+
+  if (classesError) {
+    console.error('Error fetching classes:', classesError);
+  }
+
+  return <NewStudentClient parents={parents || []} classes={classes || []} />;
 }

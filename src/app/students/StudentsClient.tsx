@@ -195,19 +195,10 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
                   <input type="checkbox" className="rounded border-outline-variant" />
                 </th>
                 <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
-                  Mã HV
-                </th>
-                <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
                   Họ và tên
                 </th>
                 <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
                   Ngày sinh
-                </th>
-                <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
-                  Giới tính
-                </th>
-                <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
-                  Số điện thoại
                 </th>
                 <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
                   Lớp học
@@ -236,11 +227,6 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
                     />
                   </td>
                   <td className="px-md py-md">
-                    <span className="font-mono text-label-sm text-primary bg-primary/5 px-sm py-xs rounded-md">
-                      {student.code}
-                    </span>
-                  </td>
-                  <td className="px-md py-md">
                     <Link href={`/students/${student.id}`} className="flex items-center gap-sm hover:text-primary transition-colors">
                       <div
                         className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 ${student.avatarColor}`}
@@ -251,27 +237,11 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
                         <p className="text-body-md font-medium text-on-background group-hover:text-primary transition-colors">
                           {student.fullName}
                         </p>
-                        <p className="text-label-sm text-on-surface-variant">{student.email}</p>
+                        <p className="text-label-sm text-on-surface-variant font-mono">{student.code}</p>
                       </div>
                     </Link>
                   </td>
                   <td className="px-md py-md text-body-md text-on-surface-variant">{student.dateOfBirth}</td>
-                  <td className="px-md py-md">
-                    <span
-                      className={`px-sm py-xs rounded-md text-label-sm font-semibold ${
-                        student.gender === 'Nam'
-                          ? 'bg-blue-50 text-blue-700'
-                          : student.gender === 'Nữ'
-                          ? 'bg-pink-50 text-pink-700'
-                          : 'bg-surface-container text-on-surface-variant'
-                      }`}
-                    >
-                      {student.gender}
-                    </span>
-                  </td>
-                  <td className="px-md py-md">
-                    <span className="font-mono text-body-md text-on-surface">{student.phone}</span>
-                  </td>
                   <td className="px-md py-md">
                     {student.enrolledClasses?.length > 0 ? (
                       <div className="flex flex-col gap-1">

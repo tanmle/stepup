@@ -12,6 +12,36 @@ const STEPS = [
   { id: 4, label: 'Xác nhận', icon: 'check_circle' },
 ];
 
+const COURSE_OPTIONS = [
+  {
+    category: 'Tiếng Anh Mầm non',
+    icon: 'child_care',
+    levels: ['Little Step', 'Middle Step', 'Big Step'],
+  },
+  {
+    category: 'Tiếng Anh Tiểu học',
+    icon: 'school',
+    levels: ['Starters', 'Movers', 'Flyers'],
+  },
+  {
+    category: 'Tiếng Anh Trung học',
+    icon: 'menu_book',
+    levels: ['Foundation', 'Advanced'],
+  },
+  {
+    category: 'Luyện thi IELTS',
+    icon: 'workspace_premium',
+    levels: ['Band 4-5.5'],
+  },
+];
+
+const REGISTRATION_TYPES = [
+  { value: 'monthly', label: 'Theo tháng', icon: 'calendar_month', desc: '1 tháng' },
+  { value: '3months', label: '3 tháng', icon: 'date_range', desc: 'Tiết kiệm 5%' },
+  { value: '6months', label: '6 tháng', icon: 'event_note', desc: 'Tiết kiệm 10%' },
+  { value: 'full', label: 'Full khóa', icon: 'star', desc: 'Tiết kiệm 15%' },
+];
+
 
 
 interface NewStudentClientProps {
@@ -22,9 +52,9 @@ interface NewStudentClientProps {
 export default function NewStudentClient({ parents, classes }: NewStudentClientProps) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    fullName: '', dateOfBirth: '', gender: '', phone: '', email: '',
+    fullName: '', englishName: '', dateOfBirth: '', gender: '',
     parentName: '', parentRelationship: 'Mẹ', parentPhone: '', address: '',
-    courseId: '', classId: '', parentId: '',
+    courseId: '', classId: '', parentId: '', registrationType: '', totalSessions: '',
   });
 
   const selectedClass = classes.find((c) => c.id === form.classId);
@@ -41,10 +71,9 @@ export default function NewStudentClient({ parents, classes }: NewStudentClientP
   const handleSubmit = () => {
     const formData = new FormData();
     formData.append('fullName', form.fullName);
+    formData.append('englishName', form.englishName);
     formData.append('dateOfBirth', form.dateOfBirth);
     formData.append('gender', form.gender);
-    formData.append('phone', form.phone);
-    formData.append('email', form.email);
     formData.append('address', form.address);
     formData.append('parentName', form.parentName);
     formData.append('parentRelationship', form.parentRelationship);
@@ -129,7 +158,7 @@ export default function NewStudentClient({ parents, classes }: NewStudentClientP
           <div className="animate-fade-in">
             <h2 className="text-title-lg text-on-background mb-lg">Thông tin cá nhân</h2>
             <div className="grid grid-cols-2 gap-md">
-              <div className="col-span-2">
+              <div>
                 <label className="text-label-sm text-on-surface-variant mb-xs block">
                   Họ và tên <span className="text-error">*</span>
                 </label>
@@ -137,6 +166,15 @@ export default function NewStudentClient({ parents, classes }: NewStudentClientP
                   value={form.fullName}
                   onChange={(e) => handleChange('fullName', e.target.value)}
                   placeholder="Nguyễn Văn A"
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label className="text-label-sm text-on-surface-variant mb-xs block">Tên Tiếng Anh</label>
+                <input
+                  value={form.englishName}
+                  onChange={(e) => handleChange('englishName', e.target.value)}
+                  placeholder="Alex Nguyen"
                   className="input-field"
                 />
               </div>
@@ -161,26 +199,6 @@ export default function NewStudentClient({ parents, classes }: NewStudentClientP
                   <option value="Nữ">Nữ</option>
                   <option value="Khác">Khác</option>
                 </select>
-              </div>
-              <div>
-                <label className="text-label-sm text-on-surface-variant mb-xs block">Số điện thoại</label>
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => handleChange('phone', e.target.value)}
-                  placeholder="0987 654 321"
-                  className="input-field"
-                />
-              </div>
-              <div>
-                <label className="text-label-sm text-on-surface-variant mb-xs block">Email</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
-                  placeholder="email@example.com"
-                  className="input-field"
-                />
               </div>
             </div>
           </div>
@@ -273,54 +291,99 @@ export default function NewStudentClient({ parents, classes }: NewStudentClientP
         {/* Step 3 - Course Registration */}
         {step === 3 && (
           <div className="animate-fade-in">
-            <h2 className="text-title-lg text-on-background mb-lg">Đăng ký lớp học</h2>
+            {/* Mục 1: Đăng ký khóa học */}
+            <h2 className="text-title-lg text-on-background mb-md">Đăng ký khóa học</h2>
+            <p className="text-body-md text-on-surface-variant mb-lg">Chọn chương trình và cấp độ phù hợp</p>
             
-            {classes.length === 0 ? (
-              <p className="text-body-md text-on-surface-variant">Không có lớp học nào đang mở.</p>
-            ) : (
-              <div className="grid grid-cols-2 gap-md mb-lg">
-                {classes.map((cls) => (
+            <div className="space-y-lg mb-xl">
+              {COURSE_OPTIONS.map((program) => (
+                <div key={program.category}>
+                  <h3 className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-sm flex items-center gap-xs">
+                    <span className="material-symbols-outlined text-[16px]">{program.icon}</span>
+                    {program.category}
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-sm">
+                    {program.levels.map((level) => {
+                      const val = `${program.category} - ${level}`;
+                      const isSelected = form.courseId === val;
+                      return (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => handleChange('courseId', val)}
+                          className={`text-left p-md rounded-xl border-2 transition-all duration-200 ${
+                            isSelected
+                              ? 'border-primary bg-primary/5 shadow-sm'
+                              : 'border-outline-variant/30 hover:border-primary/30 hover:bg-surface-container-low'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="text-body-md font-semibold text-on-background">{level}</p>
+                            {isSelected && (
+                              <span className="material-symbols-outlined text-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                check_circle
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Mục 2: Hình thức đăng ký */}
+            <h2 className="text-title-lg text-on-background mb-md">Hình thức đăng ký</h2>
+            <p className="text-body-md text-on-surface-variant mb-md">Chọn hình thức đóng học phí</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-sm">
+              {REGISTRATION_TYPES.map((type) => {
+                const isSelected = form.registrationType === type.value;
+                return (
                   <button
-                    key={cls.id}
-                    onClick={() => handleChange('classId', cls.id)}
-                    className={`text-left p-md rounded-xl border-2 transition-all duration-200 ${
-                      form.classId === cls.id
+                    key={type.value}
+                    type="button"
+                    onClick={() => handleChange('registrationType', type.value)}
+                    className={`text-center p-md rounded-xl border-2 transition-all duration-200 ${
+                      isSelected
                         ? 'border-primary bg-primary/5 shadow-sm'
                         : 'border-outline-variant/30 hover:border-primary/30 hover:bg-surface-container-low'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-body-lg font-semibold text-on-background">{cls.name}</p>
-                        <p className="text-body-md text-on-surface-variant mt-xs">Mã: {cls.code} | {cls.program}</p>
-                      </div>
-                      {form.classId === cls.id && (
-                        <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                          check_circle
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-md mt-md">
-                      <span className="text-label-sm bg-primary/10 text-primary px-sm py-xs rounded-md">
-                        {cls.price ? `${cls.price.toLocaleString('vi-VN')} đ` : 'Chưa cập nhật giá'}
-                      </span>
-                    </div>
+                    <span className={`material-symbols-outlined text-[24px] mb-xs ${isSelected ? 'text-primary' : 'text-on-surface-variant'}`}>
+                      {type.icon}
+                    </span>
+                    <p className={`text-body-md font-semibold ${isSelected ? 'text-primary' : 'text-on-background'}`}>{type.label}</p>
+                    <p className="text-label-sm text-on-surface-variant mt-xs">{type.desc}</p>
                   </button>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
 
-            {selectedClass && (
-              <div className="animate-fade-in">
-                <div className="mt-md p-md bg-primary/5 rounded-xl border border-primary/20">
-                  <p className="text-label-sm text-primary font-semibold">Học phí dự tính</p>
-                  <p className="text-[24px] font-bold text-primary mt-xs">
-                    {selectedClass.price ? selectedClass.price.toLocaleString('vi-VN') : '0'} <span className="text-body-md">đồng</span>
-                  </p>
-                  <p className="text-label-sm text-on-surface-variant mt-xs">* Sẽ tự động tạo hóa đơn học phí khi hoàn tất ghi danh</p>
+            {/* Mục 3: Số buổi học */}
+            <div className="mt-xl p-lg bg-surface-container-low rounded-2xl border border-outline-variant/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-md">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-primary text-[20px]">event_repeat</span>
+                  </div>
+                  <div>
+                    <p className="text-body-md font-semibold text-on-background">Tổng số buổi học</p>
+                    <p className="text-label-sm text-on-surface-variant">Nhập số buổi cho khóa học đã chọn</p>
+                  </div>
+                </div>
+                <div className="w-[120px]">
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.totalSessions}
+                    onChange={(e) => handleChange('totalSessions', e.target.value)}
+                    placeholder="VD: 24"
+                    className="input-field text-center text-body-lg font-semibold"
+                  />
                 </div>
               </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -342,11 +405,13 @@ export default function NewStudentClient({ parents, classes }: NewStudentClientP
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm max-w-2xl mx-auto w-full text-left">
               {[
                 { label: 'Họ và tên', value: form.fullName || '(chưa điền)' },
+                { label: 'Tên Tiếng Anh', value: form.englishName || '(chưa điền)' },
                 { label: 'Ngày sinh', value: form.dateOfBirth || '(chưa điền)' },
-                { label: 'Số điện thoại', value: form.phone || '(chưa điền)' },
+                { label: 'Giới tính', value: form.gender || '(chưa điền)' },
                 { label: 'Phụ huynh', value: form.parentName || '(chưa điền)' },
-                { label: 'Lớp đăng ký', value: selectedClass ? selectedClass.name : '(chưa chọn)' },
-                { label: 'Học phí', value: selectedClass && selectedClass.price ? `${selectedClass.price.toLocaleString('vi-VN')} đ` : '0 đ' },
+                { label: 'Khóa học', value: form.courseId || '(chưa chọn)' },
+                { label: 'Hình thức', value: REGISTRATION_TYPES.find(t => t.value === form.registrationType)?.label || '(chưa chọn)' },
+                { label: 'Số buổi học', value: form.totalSessions || '(chưa điền)' },
               ].map((item) => (
                 <div key={item.label} className="p-md bg-surface-container-low rounded-xl border border-outline-variant/20 flex flex-col justify-center">
                   <span className="text-label-sm text-on-surface-variant mb-xs">{item.label}</span>

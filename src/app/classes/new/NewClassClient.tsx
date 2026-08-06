@@ -18,8 +18,11 @@ export default function NewClassClient({ teachers }: NewClassClientProps) {
     program: '',
     teacherId: '',
     capacity: '15',
-    schedule: '',
+    scheduleDays: [] as string[],
+    startTime: '',
+    endTime: '',
     startDate: '',
+    endDate: '',
   });
 
   const handleChange = (field: string, value: string) => {
@@ -29,7 +32,13 @@ export default function NewClassClient({ teachers }: NewClassClientProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData();
-    Object.entries(form).forEach(([key, value]) => formData.append(key, value));
+    Object.entries(form).forEach(([key, value]) => {
+      if (key === 'scheduleDays') {
+        formData.append('schedule', (value as string[]).join(', ') + ` (${form.startTime}-${form.endTime})`);
+      } else {
+        formData.append(key, value as string);
+      }
+    });
 
     startTransition(async () => {
       try {
@@ -123,7 +132,7 @@ export default function NewClassClient({ teachers }: NewClassClientProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <div>
             <label className="text-label-sm text-on-surface-variant mb-xs block">
               Sĩ số tối đa
@@ -138,25 +147,82 @@ export default function NewClassClient({ teachers }: NewClassClientProps) {
           </div>
           <div>
             <label className="text-label-sm text-on-surface-variant mb-xs block">
-              Lịch học (Tóm tắt)
+              Ngày học trong tuần
+            </label>
+            <div className="flex flex-wrap gap-xs">
+              {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day) => {
+                const isSelected = form.scheduleDays.includes(day);
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => {
+                      setForm((prev) => ({
+                        ...prev,
+                        scheduleDays: isSelected
+                          ? prev.scheduleDays.filter((d) => d !== day)
+                          : [...prev.scheduleDays, day],
+                      }));
+                    }}
+                    className={`px-sm py-xs rounded-lg text-label-sm font-semibold border-2 transition-all ${
+                      isSelected
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-outline-variant/30 text-on-surface-variant hover:border-primary/30'
+                    }`}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-md">
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Giờ bắt đầu <span className="text-error">*</span>
             </label>
             <input
               required
-              value={form.schedule}
-              onChange={(e) => handleChange('schedule', e.target.value)}
-              placeholder="T2, T4 (18:00)"
+              type="time"
+              value={form.startTime}
+              onChange={(e) => handleChange('startTime', e.target.value)}
               className="input-field w-full"
             />
           </div>
           <div>
             <label className="text-label-sm text-on-surface-variant mb-xs block">
-              Ngày bắt đầu dự kiến <span className="text-error">*</span>
+              Giờ kết thúc <span className="text-error">*</span>
+            </label>
+            <input
+              required
+              type="time"
+              value={form.endTime}
+              onChange={(e) => handleChange('endTime', e.target.value)}
+              className="input-field w-full"
+            />
+          </div>
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Ngày bắt đầu <span className="text-error">*</span>
             </label>
             <input
               required
               type="date"
               value={form.startDate}
               onChange={(e) => handleChange('startDate', e.target.value)}
+              className="input-field w-full"
+            />
+          </div>
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Ngày kết thúc
+            </label>
+            <input
+              type="date"
+              value={form.endDate}
+              onChange={(e) => handleChange('endDate', e.target.value)}
               className="input-field w-full"
             />
           </div>
@@ -169,7 +235,7 @@ export default function NewClassClient({ teachers }: NewClassClientProps) {
           </Link>
           <button
             type="submit"
-            disabled={isPending || !form.code || !form.name || !form.program || !form.startDate}
+            disabled={isPending || !form.code || !form.name || !form.program || !form.startDate || !form.startTime || !form.endTime}
             className="btn-primary"
           >
             {isPending ? (

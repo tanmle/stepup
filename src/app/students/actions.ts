@@ -11,8 +11,7 @@ export async function addStudent(formData: FormData) {
 
   // Extract student data
   const fullName = formData.get('fullName') as string;
-  const email = formData.get('email') as string;
-  const phone = formData.get('phone') as string;
+  const englishName = formData.get('englishName') as string;
   const dateOfBirth = formData.get('dateOfBirth') as string;
   const gender = formData.get('gender') as string;
   const address = formData.get('address') as string;
@@ -42,8 +41,7 @@ export async function addStudent(formData: FormData) {
       {
         code,
         full_name: fullName,
-        email,
-        phone,
+        english_name: englishName || null,
         date_of_birth: dateOfBirth || null,
         gender: gender || 'Khác',
         address: address || '',

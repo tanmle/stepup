@@ -1,0 +1,162 @@
+'use server';
+
+import { createClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
+
+export async function addStudent(formData: FormData) {
+  const supabase = await createClient();
+
+  // Generate random student code
+  const code = `HV-${new Date().getFullYear().toString().slice(2)}${Math.floor(1000 + Math.random() * 9000)}`;
+
+  // Extract student data
+  const fullName = formData.get('fullName') as string;
+  const email = formData.get('email') as string;
+  const phone = formData.get('phone') as string;
+  const dateOfBirth = formData.get('dateOfBirth') as string;
+  const gender = formData.get('gender') as string;
+  const address = formData.get('address') as string;
+
+  // Generate initials for avatar
+  const initials = fullName
+    .split(' ')
+    .map((n) => n[0])
+    .slice(-2)
+    .join('')
+    .toUpperCase();
+
+  // Random color logic for avatar
+  const colors = [
+    'bg-blue-100 text-blue-700',
+    'bg-pink-100 text-pink-700',
+    'bg-emerald-100 text-emerald-700',
+    'bg-amber-100 text-amber-700',
+    'bg-indigo-100 text-indigo-700',
+  ];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+
+  // Insert Student
+  const { data: student, error: studentError } = await supabase
+    .from('students')
+    .insert([
+      {
+        code,
+        full_name: fullName,
+        email,
+        phone,
+        date_of_birth: dateOfBirth || null,
+        gender: gender || 'Khác',
+        address: address || '',
+        status: 'Đang học',
+        avatar_initials: initials,
+        avatar_color: color,
+        attendance_rate: 100,
+        current_debt: 0,
+      },
+    ])
+    .select('id')
+    .single();
+
+  if (studentError) {
+    console.error('Error adding student:', studentError);
+    throw new Error('Failed to create student');
+  }
+
+  // Link or Create Parent
+  const parentId = formData.get('parentId') as string;
+  const parentName = formData.get('parentName') as string;
+  const parentRelationship = formData.get('parentRelationship') as string || 'Phụ huynh';
+  const parentPhone = formData.get('parentPhone') as string || '';
+
+  if (student.id) {
+    if (parentId) {
+      // Link existing parent
+      await supabase.from('student_parents').insert([{
+        student_id: student.id,
+        parent_id: parentId,
+        relationship: parentRelationship,
+      }]);
+    } else if (parentName) {
+      // Create new parent and link
+      const { data: newParent, error: parentError } = await supabase.from('parents').insert([{
+        full_name: parentName,
+        phone: parentPhone,
+      }]).select('id').single();
+
+      if (!parentError && newParent) {
+        await supabase.from('student_parents').insert([{
+          student_id: student.id,
+          parent_id: newParent.id,
+          relationship: parentRelationship,
+        }]);
+      }
+    }
+  }
+
+  // If a class was selected, create an enrollment
+  const classId = formData.get('classId') as string;
+  if (classId && student.id) {
+    await supabase.from('enrollments').insert([
+      {
+        student_id: student.id,
+        class_id: classId,
+        sessions_completed: 0,
+        sessions_total: 24, // default mock value
+        attendance_rate: 100,
+        status: 'Đang học',
+      }
+    ]);
+  }
+
+  revalidatePath('/students');
+  return { success: true };
+}
+
+export async function deleteStudent(id: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('students')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting student:', error);
+    throw new Error('Failed to delete student');
+  }
+
+  revalidatePath('/students');
+}
+
+export async function updateStudent(id: string, formData: FormData) {
+  const supabase = await createClient();
+
+  const fullName = formData.get('fullName') as string;
+  const gender = formData.get('gender') as string;
+  const dateOfBirth = formData.get('dateOfBirth') as string;
+  const phone = formData.get('phone') as string;
+  const email = formData.get('email') as string;
+  const address = formData.get('address') as string;
+
+  const { error } = await supabase
+    .from('students')
+    .update({
+      full_name: fullName,
+      gender,
+      date_of_birth: dateOfBirth,
+      phone,
+      email,
+      address,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating student:', error);
+    throw new Error('Failed to update student');
+  }
+
+  revalidatePath('/students');
+  revalidatePath(`/students/${id}`);
+  return { success: true };
+}

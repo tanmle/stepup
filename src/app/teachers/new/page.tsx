@@ -1,0 +1,184 @@
+'use client';
+
+import { useState, useTransition } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { addTeacher } from '../actions';
+
+export default function NewTeacherPage() {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [form, setForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    degree: '',
+    institution: '',
+    yearsOfExperience: '',
+  });
+
+  const handleChange = (field: string, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData();
+    Object.entries(form).forEach(([key, value]) => formData.append(key, value));
+
+    startTransition(async () => {
+      try {
+        await addTeacher(formData);
+        router.push('/teachers');
+        router.refresh();
+      } catch (error) {
+        alert('Lỗi tạo giáo viên: ' + (error as Error).message);
+      }
+    });
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto pb-xl animate-fade-in">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-xs text-label-sm text-on-surface-variant mb-lg">
+        <Link href="/dashboard" className="hover:text-primary transition-colors">Trang chủ</Link>
+        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+        <Link href="/teachers" className="hover:text-primary transition-colors">Quản lý giáo viên</Link>
+        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+        <span className="text-on-surface font-medium">Thêm giáo viên mới</span>
+      </nav>
+
+      <div className="mb-xl">
+        <h1 className="text-headline-lg text-on-background">Thêm giáo viên mới</h1>
+        <p className="text-body-md text-on-surface-variant mt-xs">Điền thông tin để tạo hồ sơ giáo viên mới</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-lg">
+        {/* Left Column - Personal Info */}
+        <div className="card p-lg space-y-md">
+          <h2 className="text-title-md font-semibold text-on-background flex items-center gap-2 border-b border-outline-variant/20 pb-sm">
+            <span className="material-symbols-outlined text-primary">person</span>
+            Thông tin cá nhân
+          </h2>
+          
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Họ và tên <span className="text-error">*</span>
+            </label>
+            <input
+              required
+              value={form.fullName}
+              onChange={(e) => handleChange('fullName', e.target.value)}
+              placeholder="Nguyễn Văn A"
+              className="input-field w-full"
+            />
+          </div>
+
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Số điện thoại <span className="text-error">*</span>
+            </label>
+            <input
+              required
+              type="tel"
+              value={form.phone}
+              onChange={(e) => handleChange('phone', e.target.value)}
+              placeholder="0987 654 321"
+              className="input-field w-full"
+            />
+          </div>
+
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Email liên hệ <span className="text-error">*</span>
+            </label>
+            <input
+              required
+              type="email"
+              value={form.email}
+              onChange={(e) => handleChange('email', e.target.value)}
+              placeholder="nguyenvana@gmail.com"
+              className="input-field w-full"
+            />
+          </div>
+        </div>
+
+        {/* Right Column - Qualifications */}
+        <div className="card p-lg space-y-md">
+          <h2 className="text-title-md font-semibold text-on-background flex items-center gap-2 border-b border-outline-variant/20 pb-sm">
+            <span className="material-symbols-outlined text-primary">school</span>
+            Học vị & Chuyên môn
+          </h2>
+
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Bằng cấp cao nhất
+            </label>
+            <select
+              value={form.degree}
+              onChange={(e) => handleChange('degree', e.target.value)}
+              className="input-field w-full"
+            >
+              <option value="">-- Chọn bằng cấp --</option>
+              <option value="Cử nhân">Cử nhân</option>
+              <option value="Thạc sĩ">Thạc sĩ</option>
+              <option value="Tiến sĩ">Tiến sĩ</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Nơi công tác / Trường tốt nghiệp
+            </label>
+            <input
+              value={form.institution}
+              onChange={(e) => handleChange('institution', e.target.value)}
+              placeholder="ĐH Ngoại Thương, ĐH Sư Phạm..."
+              className="input-field w-full"
+            />
+          </div>
+
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Số năm kinh nghiệm
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={form.yearsOfExperience}
+              onChange={(e) => handleChange('yearsOfExperience', e.target.value)}
+              placeholder="Ví dụ: 3"
+              className="input-field w-full"
+            />
+          </div>
+          
+          <div className="bg-primary/5 border border-primary/20 p-sm rounded-lg text-label-sm text-primary flex gap-2">
+            <span className="material-symbols-outlined text-[18px]">info</span>
+            Các chứng chỉ và chuyên môn chi tiết (IELTS, TOEIC, TESOL...) có thể được bổ sung ở chức năng Cập nhật Hồ sơ sau khi tạo mới thành công.
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="col-span-1 lg:col-span-2 flex items-center justify-end gap-sm mt-lg pt-md border-t border-outline-variant/20">
+          <Link href="/teachers" className="btn-secondary">
+            Hủy
+          </Link>
+          <button
+            type="submit"
+            disabled={isPending || !form.fullName || !form.phone || !form.email}
+            className="btn-primary"
+          >
+            {isPending ? (
+              <>Đang xử lý...</>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-[16px]">save</span>
+                Hoàn tất
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

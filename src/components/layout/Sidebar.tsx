@@ -10,8 +10,11 @@ interface SidebarProps {
 
 const NAV_ITEMS = [
   { label: 'Tổng quan', icon: 'home', href: '/dashboard' },
-  { label: 'Quản lý học viên', icon: 'school', href: '/students' },
-  { label: 'Quản lý giáo viên', icon: 'co_present', href: '/teachers' },
+  { label: 'Học viên', icon: 'school', href: '/students' },
+  { label: 'Phụ huynh', icon: 'family_restroom', href: '/parents' },
+  { label: 'Giáo viên', icon: 'person_apron', href: '/teachers' },
+  { label: 'Lớp học', icon: 'class', href: '/classes' },
+  { label: 'Lịch dạy', icon: 'calendar_month', href: '/schedule' },
   { label: 'Học phí & Công nợ', icon: 'payments', href: '/tuition' },
   { label: 'Báo cáo tài chính', icon: 'analytics', href: '/reports' },
 ];

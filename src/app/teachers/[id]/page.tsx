@@ -77,7 +77,7 @@ export default async function TeacherDetailPage({ params }: Props) {
     canTeachOnline: t.can_teach_online || false,
     canTeachWeekend: t.can_teach_weekend || false,
     salaryType: t.salary_type || 'Theo giờ',
-    baseSalary: t.base_salary || 0,
+    salaryRate: t.salary_rate || 0,
     allowances: t.allowances || {},
 
     // Related tables data

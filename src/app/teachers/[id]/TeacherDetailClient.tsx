@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -40,6 +40,7 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
   const [attCheckIn, setAttCheckIn] = useState('17:30');
   const [attCheckOut, setAttCheckOut] = useState('19:00');
   const [attType, setAttType] = useState('Dạy học');
+  const [attWorkAmount, setAttWorkAmount] = useState('1');
   const [attNote, setAttNote] = useState('');
 
   // States for salary
@@ -80,21 +81,31 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
     e.preventDefault();
     startTransition(async () => {
       try {
-        const checkInParts = attCheckIn.split(':');
-        const checkOutParts = attCheckOut.split(':');
-        const checkInDate = new Date();
-        checkInDate.setHours(Number(checkInParts[0]), Number(checkInParts[1]));
-        const checkOutDate = new Date();
-        checkOutDate.setHours(Number(checkOutParts[0]), Number(checkOutParts[1]));
-        
-        let hoursWorked = (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60);
-        if (hoursWorked < 0) hoursWorked += 24;
+        let hoursWorked = 0;
+        let checkInVal = '';
+        let checkOutVal = '';
+
+        if (teacher.salaryType === 'fixed') {
+          hoursWorked = Number(attWorkAmount);
+        } else {
+          const checkInParts = attCheckIn.split(':');
+          const checkOutParts = attCheckOut.split(':');
+          const checkInDate = new Date();
+          checkInDate.setHours(Number(checkInParts[0]), Number(checkInParts[1]));
+          const checkOutDate = new Date();
+          checkOutDate.setHours(Number(checkOutParts[0]), Number(checkOutParts[1]));
+          
+          hoursWorked = (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60);
+          if (hoursWorked < 0) hoursWorked += 24;
+          checkInVal = attCheckIn;
+          checkOutVal = attCheckOut;
+        }
 
         const formData = new FormData();
         formData.append('teacher_id', teacher.id);
         formData.append('date', attDate);
-        formData.append('check_in', attCheckIn);
-        formData.append('check_out', attCheckOut);
+        if (checkInVal) formData.append('check_in', checkInVal);
+        if (checkOutVal) formData.append('check_out', checkOutVal);
         formData.append('hours_worked', hoursWorked.toString());
         formData.append('type', attType);
         formData.append('note', attNote);
@@ -142,6 +153,43 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
       }
     });
   };
+
+  const calculateSalary = () => {
+    if (!salMonth) return;
+    const [yearStr, monthStr] = salMonth.split('-');
+    const year = parseInt(yearStr);
+    const month = parseInt(monthStr);
+
+    const attendanceRecords = (teacher.attendance || []).filter((a: any) => {
+      const date = new Date(a.date);
+      return date.getFullYear() === year && (date.getMonth() + 1) === month;
+    });
+
+    const totalHours = attendanceRecords.reduce((sum: number, a: any) => sum + (Number(a.hours_worked) || 0), 0);
+    
+    setSalTotalHours(totalHours.toString());
+
+    let baseSalary = 0;
+    if (teacher.salaryType === 'fixed') {
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const standardWorkingDays = daysInMonth - 4;
+      const dailyRate = (Number(teacher.salaryRate) || 0) / standardWorkingDays;
+      baseSalary = Math.round(totalHours * dailyRate);
+    } else {
+      baseSalary = Math.round(totalHours * (Number(teacher.salaryRate) || 0));
+    }
+    setSalBaseSalary(baseSalary.toString());
+
+    const allowances = teacher.allowances || {};
+    const allowanceTotal = (Number(allowances.chuyenCan) || 0) + (Number(allowances.soanBai) || 0) + (Number(allowances.tuyenSinh) || 0) + (Number(allowances.thuongKPI) || 0);
+    setSalAllowanceTotal(allowanceTotal.toString());
+  };
+
+  useEffect(() => {
+    if (activeTab === 'salary') {
+      calculateSalary();
+    }
+  }, [salMonth, activeTab]);
 
   const handleAddSalary = (e: React.FormEvent) => {
     e.preventDefault();
@@ -477,14 +525,27 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                     <label className="text-label-sm text-on-surface-variant block mb-xs">Ngày</label>
                     <input type="date" className="input-field w-full" value={attDate} onChange={e => setAttDate(e.target.value)} required />
                   </div>
-                  <div>
-                    <label className="text-label-sm text-on-surface-variant block mb-xs">Giờ vào</label>
-                    <input type="time" className="input-field w-full" value={attCheckIn} onChange={e => setAttCheckIn(e.target.value)} required />
-                  </div>
-                  <div>
-                    <label className="text-label-sm text-on-surface-variant block mb-xs">Giờ ra</label>
-                    <input type="time" className="input-field w-full" value={attCheckOut} onChange={e => setAttCheckOut(e.target.value)} required />
-                  </div>
+                  {teacher.salaryType !== 'fixed' ? (
+                    <>
+                      <div>
+                        <label className="text-label-sm text-on-surface-variant block mb-xs">Giờ vào</label>
+                        <input type="time" className="input-field w-full" value={attCheckIn} onChange={e => setAttCheckIn(e.target.value)} required />
+                      </div>
+                      <div>
+                        <label className="text-label-sm text-on-surface-variant block mb-xs">Giờ ra</label>
+                        <input type="time" className="input-field w-full" value={attCheckOut} onChange={e => setAttCheckOut(e.target.value)} required />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="col-span-2">
+                      <label className="text-label-sm text-on-surface-variant block mb-xs">Khối lượng làm việc</label>
+                      <select className="input-field w-full" value={attWorkAmount} onChange={e => setAttWorkAmount(e.target.value)}>
+                        <option value="1">Full ngày (1 ngày công)</option>
+                        <option value="0.5">Nửa ngày (0.5 ngày công)</option>
+                        <option value="1">Nghỉ phép có lương (1 ngày công)</option>
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="text-label-sm text-on-surface-variant block mb-xs">Loại</label>
                     <select className="input-field w-full" value={attType} onChange={e => setAttType(e.target.value)}>
@@ -512,9 +573,15 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                   <thead className="bg-surface-container-low border-b border-outline-variant/20">
                     <tr>
                       <th className="p-sm text-label-sm text-on-surface-variant">Ngày</th>
-                      <th className="p-sm text-label-sm text-on-surface-variant">Giờ vào</th>
-                      <th className="p-sm text-label-sm text-on-surface-variant">Giờ ra</th>
-                      <th className="p-sm text-label-sm text-on-surface-variant">Số giờ</th>
+                      {teacher.salaryType !== 'fixed' ? (
+                        <>
+                          <th className="p-sm text-label-sm text-on-surface-variant">Giờ vào</th>
+                          <th className="p-sm text-label-sm text-on-surface-variant">Giờ ra</th>
+                          <th className="p-sm text-label-sm text-on-surface-variant">Số giờ</th>
+                        </>
+                      ) : (
+                        <th className="p-sm text-label-sm text-on-surface-variant">Ngày công</th>
+                      )}
                       <th className="p-sm text-label-sm text-on-surface-variant">Loại</th>
                       <th className="p-sm text-label-sm text-on-surface-variant">Ghi chú</th>
                     </tr>
@@ -524,9 +591,15 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                       teacher.attendance.map((record: any, idx: number) => (
                         <tr key={idx} className="hover:bg-surface-container-low transition-colors">
                           <td className="p-sm text-body-md font-medium">{record.date}</td>
-                          <td className="p-sm text-body-md">{record.check_in}</td>
-                          <td className="p-sm text-body-md">{record.check_out}</td>
-                          <td className="p-sm text-body-md font-medium text-primary">{record.hours}</td>
+                          {teacher.salaryType !== 'fixed' ? (
+                            <>
+                              <td className="p-sm text-body-md">{record.check_in}</td>
+                              <td className="p-sm text-body-md">{record.check_out}</td>
+                              <td className="p-sm text-body-md font-medium text-primary">{record.hours_worked}</td>
+                            </>
+                          ) : (
+                            <td className="p-sm text-body-md font-medium text-primary">{record.hours_worked}</td>
+                          )}
                           <td className="p-sm text-body-md">
                             <span className="bg-surface-variant px-2 py-1 rounded text-xs">{record.type}</span>
                           </td>
@@ -547,9 +620,11 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                   {teacher.attendance?.length > 0 && (
                     <tfoot className="bg-surface-container-low border-t border-outline-variant/20">
                       <tr>
-                        <td colSpan={3} className="p-sm text-right font-medium text-on-surface">Tổng giờ:</td>
+                        <td colSpan={teacher.salaryType !== 'fixed' ? 3 : 1} className="p-sm text-right font-medium text-on-surface">
+                          {teacher.salaryType === 'fixed' ? 'Tổng ngày công:' : 'Tổng giờ:'}
+                        </td>
                         <td colSpan={3} className="p-sm font-bold text-primary">
-                          {teacher.attendance.reduce((sum: number, r: any) => sum + (Number(r.hours) || 0), 0)} giờ
+                          {teacher.attendance.reduce((sum: number, r: any) => sum + (Number(r.hours_worked) || 0), 0)} {teacher.salaryType === 'fixed' ? 'ngày' : 'giờ'}
                         </td>
                       </tr>
                     </tfoot>
@@ -614,8 +689,8 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                 <div className="bg-primary/5 border border-primary/20 rounded-xl p-md flex flex-col justify-center">
                   <span className="text-label-sm text-primary uppercase font-medium">Hình thức & Mức lương</span>
                   <div className="mt-sm flex items-end gap-sm">
-                    <span className="text-headline-md font-bold text-on-surface">{teacher.baseSalary?.toLocaleString() || '0'}đ</span>
-                    <span className="text-on-surface-variant mb-1">/ {teacher.salaryType === 'Cố định' ? 'tháng' : 'giờ'}</span>
+                    <span className="text-headline-md font-bold text-on-surface">{teacher.salaryRate?.toLocaleString() || '0'}đ</span>
+                    <span className="text-on-surface-variant mb-1">/ {teacher.salaryType === 'fixed' ? 'tháng' : 'giờ'}</span>
                   </div>
                 </div>
 
@@ -642,7 +717,13 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                   <h3 className="font-medium text-title-md">Tạo bảng lương</h3>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-md">
                     <div>
-                      <label className="text-label-sm text-on-surface-variant block mb-xs">Tháng</label>
+                      <div className="flex items-center justify-between mb-xs">
+                        <label className="text-label-sm text-on-surface-variant">Tháng</label>
+                        <button type="button" onClick={calculateSalary} className="text-primary hover:bg-primary/10 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors" title="Tính lại tự động">
+                          <span className="material-symbols-outlined text-[14px] align-middle mr-0.5">refresh</span>
+                          Tự tính
+                        </button>
+                      </div>
                       <input type="month" className="input-field w-full" value={salMonth} onChange={e => setSalMonth(e.target.value)} required />
                     </div>
                     <div>

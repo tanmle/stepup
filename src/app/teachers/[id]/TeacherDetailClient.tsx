@@ -37,11 +37,14 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
 
   // States for attendance
   const [attDate, setAttDate] = useState(new Date().toISOString().split('T')[0]);
-  const [attCheckIn, setAttCheckIn] = useState('17:30');
-  const [attCheckOut, setAttCheckOut] = useState('19:00');
   const [attType, setAttType] = useState('Dạy học');
   const [attWorkAmount, setAttWorkAmount] = useState('1');
+  const [attShifts, setAttShifts] = useState([{ checkIn: '17:30', checkOut: '19:00' }]);
   const [attNote, setAttNote] = useState('');
+
+  // States for Calendar Attendance
+  const [calMonth, setCalMonth] = useState(new Date().toISOString().split('T')[0].slice(0, 7));
+  const [isAttModalOpen, setIsAttModalOpen] = useState(false);
 
   // States for salary
   const [salMonth, setSalMonth] = useState('2024-01');
@@ -81,36 +84,47 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
     e.preventDefault();
     startTransition(async () => {
       try {
-        let hoursWorked = 0;
-        let checkInVal = '';
-        let checkOutVal = '';
-
         if (teacher.salaryType === 'fixed') {
-          hoursWorked = Number(attWorkAmount);
+          let hoursWorked = Number(attWorkAmount);
+          const formData = new FormData();
+          formData.append('teacher_id', teacher.id);
+          formData.append('date', attDate);
+          formData.append('hours_worked', hoursWorked.toString());
+          formData.append('type', attType);
+          formData.append('note', attNote);
+          await addTeacherAttendance(formData);
         } else {
-          const checkInParts = attCheckIn.split(':');
-          const checkOutParts = attCheckOut.split(':');
-          const checkInDate = new Date();
-          checkInDate.setHours(Number(checkInParts[0]), Number(checkInParts[1]));
-          const checkOutDate = new Date();
-          checkOutDate.setHours(Number(checkOutParts[0]), Number(checkOutParts[1]));
-          
-          hoursWorked = (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60);
-          if (hoursWorked < 0) hoursWorked += 24;
-          checkInVal = attCheckIn;
-          checkOutVal = attCheckOut;
+          for (const shift of attShifts) {
+            if (!shift.checkIn || !shift.checkOut) continue;
+            const checkInParts = shift.checkIn.split(':');
+            const checkOutParts = shift.checkOut.split(':');
+            const checkInDate = new Date();
+            checkInDate.setHours(Number(checkInParts[0]), Number(checkInParts[1]));
+            const checkOutDate = new Date();
+            checkOutDate.setHours(Number(checkOutParts[0]), Number(checkOutParts[1]));
+            
+            let hoursWorked = (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60);
+            if (hoursWorked < 0) hoursWorked += 24;
+
+            const formData = new FormData();
+            formData.append('teacher_id', teacher.id);
+            formData.append('date', attDate);
+            formData.append('check_in', shift.checkIn);
+            formData.append('check_out', shift.checkOut);
+            formData.append('hours_worked', hoursWorked.toString());
+            formData.append('type', attType);
+            formData.append('note', attNote);
+
+            await addTeacherAttendance(formData);
+          }
         }
-
-        const formData = new FormData();
-        formData.append('teacher_id', teacher.id);
-        formData.append('date', attDate);
-        if (checkInVal) formData.append('check_in', checkInVal);
-        if (checkOutVal) formData.append('check_out', checkOutVal);
-        formData.append('hours_worked', hoursWorked.toString());
-        formData.append('type', attType);
-        formData.append('note', attNote);
-
-        await addTeacherAttendance(formData);
+        
+        // Reset form slightly but keep date
+        setAttShifts([{ checkIn: '17:30', checkOut: '19:00' }]);
+        setAttWorkAmount('1');
+        setAttNote('');
+        setIsAttModalOpen(false); // Close the modal after saving
+        
         router.refresh();
       } catch (error) {
         alert('Lỗi khi thêm chấm công.');
@@ -152,6 +166,26 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
         alert('Lỗi khi thêm đánh giá (có thể đã tồn tại cho tháng này).');
       }
     });
+  };
+
+  // Calendar Helpers
+  const generateCalendarDays = () => {
+    const [yearStr, monthStr] = calMonth.split('-');
+    const year = parseInt(yearStr);
+    const month = parseInt(monthStr);
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    let firstDay = new Date(year, month - 1, 1).getDay();
+    firstDay = firstDay === 0 ? 6 : firstDay - 1; // 0 is Monday, 6 is Sunday
+
+    const days = [];
+    for (let i = 0; i < firstDay; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(new Date(year, month - 1, i).toISOString().split('T')[0]);
+    }
+    return days;
   };
 
   const calculateSalary = () => {
@@ -219,6 +253,7 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
   if (!teacher) return null;
 
   return (
+    <>
     <div className="flex flex-col gap-md pb-xl animate-fade-in">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-xs text-label-sm text-on-surface-variant">
@@ -518,118 +553,44 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
           {/* Tab 4: Attendance */}
           {activeTab === 'attendance' && (
             <div className="animate-fade-in space-y-md">
-              <form onSubmit={handleAddAttendance} className="bg-surface-container-low p-md rounded-xl space-y-md">
-                <h3 className="font-medium text-title-md">Thêm chấm công</h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-md">
-                  <div>
-                    <label className="text-label-sm text-on-surface-variant block mb-xs">Ngày</label>
-                    <input type="date" className="input-field w-full" value={attDate} onChange={e => setAttDate(e.target.value)} required />
-                  </div>
-                  {teacher.salaryType !== 'fixed' ? (
-                    <>
-                      <div>
-                        <label className="text-label-sm text-on-surface-variant block mb-xs">Giờ vào</label>
-                        <input type="time" className="input-field w-full" value={attCheckIn} onChange={e => setAttCheckIn(e.target.value)} required />
-                      </div>
-                      <div>
-                        <label className="text-label-sm text-on-surface-variant block mb-xs">Giờ ra</label>
-                        <input type="time" className="input-field w-full" value={attCheckOut} onChange={e => setAttCheckOut(e.target.value)} required />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="col-span-2">
-                      <label className="text-label-sm text-on-surface-variant block mb-xs">Khối lượng làm việc</label>
-                      <select className="input-field w-full" value={attWorkAmount} onChange={e => setAttWorkAmount(e.target.value)}>
-                        <option value="1">Full ngày (1 ngày công)</option>
-                        <option value="0.5">Nửa ngày (0.5 ngày công)</option>
-                        <option value="1">Nghỉ phép có lương (1 ngày công)</option>
-                      </select>
-                    </div>
-                  )}
-                  <div>
-                    <label className="text-label-sm text-on-surface-variant block mb-xs">Loại</label>
-                    <select className="input-field w-full" value={attType} onChange={e => setAttType(e.target.value)}>
-                      <option value="Dạy học">Dạy học</option>
-                      <option value="Họp">Họp</option>
-                      <option value="Soạn bài">Soạn bài</option>
-                      <option value="Nghỉ phép">Nghỉ phép</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-label-sm text-on-surface-variant block mb-xs">Ghi chú</label>
-                    <input type="text" className="input-field w-full" value={attNote} onChange={e => setAttNote(e.target.value)} />
-                  </div>
+              <div className="flex items-center justify-between mb-md">
+                <h3 className="font-medium text-title-md">Bảng chấm công</h3>
+                <div className="flex items-center gap-2">
+                  <input type="month" className="input-field py-1" value={calMonth} onChange={e => setCalMonth(e.target.value)} />
                 </div>
-                <div className="flex justify-end">
-                  <button type="submit" className="btn-primary" disabled={isPending}>
-                    <span className="material-symbols-outlined text-[18px]">add</span>
-                    {isPending ? 'Đang lưu...' : 'Thêm chấm công'}
-                  </button>
-                </div>
-              </form>
+              </div>
 
-              <div className="border border-outline-variant/20 rounded-xl overflow-hidden overflow-x-auto mt-lg">
-                <table className="w-full text-left min-w-[700px]">
-                  <thead className="bg-surface-container-low border-b border-outline-variant/20">
-                    <tr>
-                      <th className="p-sm text-label-sm text-on-surface-variant">Ngày</th>
-                      {teacher.salaryType !== 'fixed' ? (
-                        <>
-                          <th className="p-sm text-label-sm text-on-surface-variant">Giờ vào</th>
-                          <th className="p-sm text-label-sm text-on-surface-variant">Giờ ra</th>
-                          <th className="p-sm text-label-sm text-on-surface-variant">Số giờ</th>
-                        </>
-                      ) : (
-                        <th className="p-sm text-label-sm text-on-surface-variant">Ngày công</th>
-                      )}
-                      <th className="p-sm text-label-sm text-on-surface-variant">Loại</th>
-                      <th className="p-sm text-label-sm text-on-surface-variant">Ghi chú</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-outline-variant/10">
-                    {teacher.attendance?.length > 0 ? (
-                      teacher.attendance.map((record: any, idx: number) => (
-                        <tr key={idx} className="hover:bg-surface-container-low transition-colors">
-                          <td className="p-sm text-body-md font-medium">{record.date}</td>
-                          {teacher.salaryType !== 'fixed' ? (
-                            <>
-                              <td className="p-sm text-body-md">{record.check_in}</td>
-                              <td className="p-sm text-body-md">{record.check_out}</td>
-                              <td className="p-sm text-body-md font-medium text-primary">{record.hours_worked}</td>
-                            </>
-                          ) : (
-                            <td className="p-sm text-body-md font-medium text-primary">{record.hours_worked}</td>
-                          )}
-                          <td className="p-sm text-body-md">
-                            <span className="bg-surface-variant px-2 py-1 rounded text-xs">{record.type}</span>
-                          </td>
-                          <td className="p-sm text-body-md text-on-surface-variant flex justify-between items-center">
-                            {record.note}
-                            <button onClick={() => handleDeleteAttendance(record.id)} disabled={isPending} className="text-rose-600 hover:bg-rose-50 p-1 rounded transition-colors ml-2">
-                              <span className="material-symbols-outlined text-[18px]">delete</span>
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={6} className="p-lg text-center text-on-surface-variant">Chưa có dữ liệu chấm công cho tháng này</td>
-                      </tr>
-                    )}
-                  </tbody>
-                  {teacher.attendance?.length > 0 && (
-                    <tfoot className="bg-surface-container-low border-t border-outline-variant/20">
-                      <tr>
-                        <td colSpan={teacher.salaryType !== 'fixed' ? 3 : 1} className="p-sm text-right font-medium text-on-surface">
-                          {teacher.salaryType === 'fixed' ? 'Tổng ngày công:' : 'Tổng giờ:'}
-                        </td>
-                        <td colSpan={3} className="p-sm font-bold text-primary">
-                          {teacher.attendance.reduce((sum: number, r: any) => sum + (Number(r.hours_worked) || 0), 0)} {teacher.salaryType === 'fixed' ? 'ngày' : 'giờ'}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  )}
-                </table>
+              <div className="border border-outline-variant/20 rounded-xl overflow-hidden bg-surface-container-lowest">
+                <div className="grid grid-cols-7 bg-surface-container-low border-b border-outline-variant/20">
+                  {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(day => (
+                    <div key={day} className="p-xs text-center text-label-sm font-medium text-on-surface-variant border-r last:border-r-0 border-outline-variant/20">{day}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 auto-rows-[100px]">
+                  {generateCalendarDays().map((dayStr, idx) => {
+                    if (!dayStr) return <div key={idx} className="border-r border-b border-outline-variant/20 bg-surface-container-lowest/50"></div>;
+                    const dateParts = dayStr.split('-');
+                    const dayNum = parseInt(dateParts[2]);
+                    const records = (teacher.attendance || []).filter((a: any) => a.date === dayStr);
+                    
+                    return (
+                      <div 
+                        key={idx} 
+                        onClick={() => { setAttDate(dayStr); setIsAttModalOpen(true); }}
+                        className="border-r border-b border-outline-variant/20 p-xs hover:bg-primary/[0.02] cursor-pointer group transition-colors relative flex flex-col"
+                      >
+                        <div className="text-label-sm text-on-surface-variant group-hover:text-primary transition-colors mb-1">{dayNum}</div>
+                        <div className="flex-1 flex flex-col gap-1 overflow-y-auto">
+                          {records.map((r: any, ri: number) => (
+                            <div key={ri} className="bg-primary/10 text-primary rounded px-1 py-0.5 text-[10px] font-medium flex items-center justify-between">
+                              <span className="truncate">{teacher.salaryType === 'fixed' ? (r.hours_worked == 1 ? 'Full' : (r.hours_worked == 0.5 ? 'Nửa' : 'Nghỉ phép')) : `${r.hours_worked}h`}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -934,5 +895,118 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
         </div>
       </div>
     </div>
+      
+      {/* Attendance Modal */}
+      {isAttModalOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-md animate-fade-in">
+          <div className="bg-surface rounded-2xl w-full max-w-[500px] overflow-hidden shadow-xl flex flex-col max-h-[90vh]">
+            <div className="p-md border-b border-outline-variant/20 flex items-center justify-between bg-surface-container-low">
+              <h3 className="font-semibold text-title-md">Chấm công ngày {attDate.split('-').reverse().join('/')}</h3>
+              <button onClick={() => setIsAttModalOpen(false)} className="text-on-surface-variant hover:text-on-surface transition-colors">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="p-md overflow-y-auto flex-1">
+              <div className="mb-lg">
+                <h4 className="text-label-sm text-on-surface-variant mb-sm uppercase">Lịch sử trong ngày</h4>
+                <div className="space-y-sm">
+                  {teacher.attendance?.filter((a: any) => a.date === attDate).length > 0 ? (
+                    teacher.attendance.filter((a: any) => a.date === attDate).map((r: any) => (
+                      <div key={r.id} className="flex items-center justify-between bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-sm">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-body-md text-primary">
+                              {teacher.salaryType === 'fixed' ? (r.hours_worked == 1 ? 'Full ngày' : (r.hours_worked == 0.5 ? 'Nửa ngày' : 'Nghỉ phép')) : `${r.check_in} - ${r.check_out} (${r.hours_worked}h)`}
+                            </span>
+                            <span className="bg-surface-variant px-1.5 py-0.5 rounded text-[10px]">{r.type}</span>
+                          </div>
+                          {r.note && <p className="text-body-sm text-on-surface-variant mt-1">{r.note}</p>}
+                        </div>
+                        <button onClick={() => handleDeleteAttendance(r.id)} disabled={isPending} className="text-rose-600 hover:bg-rose-50 p-1 rounded transition-colors ml-2">
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-body-sm text-on-surface-variant italic">Chưa có chấm công.</p>
+                  )}
+                </div>
+              </div>
+
+              <form onSubmit={handleAddAttendance} className="bg-surface-container-low p-md rounded-xl space-y-md border border-outline-variant/20">
+                <h4 className="text-label-sm text-on-surface-variant uppercase">Thêm mới</h4>
+                <div className="grid grid-cols-1 gap-md">
+                  {teacher.salaryType !== 'fixed' ? (
+                    <div className="space-y-sm">
+                      {attShifts.map((shift, idx) => (
+                        <div key={idx} className="flex items-center gap-sm">
+                          <div className="flex-1">
+                            <label className="text-label-sm text-on-surface-variant block mb-xs">Giờ vào</label>
+                            <input type="time" className="input-field w-full" value={shift.checkIn} onChange={e => {
+                              const newShifts = [...attShifts];
+                              newShifts[idx].checkIn = e.target.value;
+                              setAttShifts(newShifts);
+                            }} required />
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-label-sm text-on-surface-variant block mb-xs">Giờ ra</label>
+                            <input type="time" className="input-field w-full" value={shift.checkOut} onChange={e => {
+                              const newShifts = [...attShifts];
+                              newShifts[idx].checkOut = e.target.value;
+                              setAttShifts(newShifts);
+                            }} required />
+                          </div>
+                          {attShifts.length > 1 && (
+                            <button type="button" onClick={() => {
+                              const newShifts = attShifts.filter((_, i) => i !== idx);
+                              setAttShifts(newShifts);
+                            }} className="mt-6 text-rose-600 p-2 hover:bg-rose-50 rounded">
+                              <span className="material-symbols-outlined text-[18px]">close</span>
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => setAttShifts([...attShifts, { checkIn: '', checkOut: '' }])} className="text-primary text-label-sm font-medium flex items-center gap-1 hover:bg-primary/10 px-2 py-1 rounded transition-colors w-fit mt-2">
+                        <span className="material-symbols-outlined text-[16px]">add</span>
+                        Thêm ca khác
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-label-sm text-on-surface-variant block mb-xs">Khối lượng làm việc</label>
+                      <select className="input-field w-full" value={attWorkAmount} onChange={e => setAttWorkAmount(e.target.value)}>
+                        <option value="1">Full ngày (1 ngày công)</option>
+                        <option value="0.5">Nửa ngày (0.5 ngày công)</option>
+                        <option value="1">Nghỉ phép có lương (1 ngày công)</option>
+                      </select>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-md">
+                    <div>
+                      <label className="text-label-sm text-on-surface-variant block mb-xs">Loại</label>
+                      <select className="input-field w-full" value={attType} onChange={e => setAttType(e.target.value)}>
+                        <option value="Dạy học">Dạy học</option>
+                        <option value="Họp">Họp</option>
+                        <option value="Soạn bài">Soạn bài</option>
+                        <option value="Nghỉ phép">Nghỉ phép</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-label-sm text-on-surface-variant block mb-xs">Ghi chú</label>
+                      <input type="text" className="input-field w-full" value={attNote} onChange={e => setAttNote(e.target.value)} />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end pt-2">
+                  <button type="submit" className="btn-primary" disabled={isPending}>
+                    {isPending ? 'Đang lưu...' : 'Lưu chấm công'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

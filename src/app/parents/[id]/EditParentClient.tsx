@@ -376,11 +376,11 @@ export default function EditParentClient({ parent, allStudents }: EditParentClie
             <div className="grid grid-cols-1 md:grid-cols-2 gap-lg mb-lg">
               <div className="p-lg rounded-2xl bg-primary/5 border border-primary/10">
                 <p className="text-label-md text-on-surface-variant mb-1">Tổng học phí đã đóng</p>
-                <p className="text-headline-md font-bold text-primary">12,500,000đ</p>
+                <p className="text-headline-md font-bold text-primary">{parent.totalPaid?.toLocaleString('vi-VN')}đ</p>
               </div>
               <div className="p-lg rounded-2xl bg-error/5 border border-error/10">
                 <p className="text-label-md text-on-surface-variant mb-1">Công nợ hiện tại</p>
-                <p className="text-headline-md font-bold text-error">2,500,000đ</p>
+                <p className="text-headline-md font-bold text-error">{parent.totalDebt?.toLocaleString('vi-VN')}đ</p>
               </div>
             </div>
 
@@ -396,18 +396,24 @@ export default function EditParentClient({ parent, allStudents }: EditParentClie
                   </tr>
                 </thead>
                 <tbody className="text-body-sm text-on-surface divide-y divide-outline-variant/20">
-                  <tr className="hover:bg-surface-container-lowest transition-colors">
-                    <td className="p-3">20/07/2026</td>
-                    <td className="p-3 font-medium">5,000,000đ</td>
-                    <td className="p-3">Nguyễn Văn A</td>
-                    <td className="p-3"><span className="text-success text-label-sm bg-success/10 px-2 py-1 rounded-full">Thành công</span></td>
-                  </tr>
-                  <tr className="hover:bg-surface-container-lowest transition-colors">
-                    <td className="p-3">15/06/2026</td>
-                    <td className="p-3 font-medium">7,500,000đ</td>
-                    <td className="p-3">Nguyễn Văn A</td>
-                    <td className="p-3"><span className="text-success text-label-sm bg-success/10 px-2 py-1 rounded-full">Thành công</span></td>
-                  </tr>
+                  {parent.tuitionHistory?.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="p-4 text-center text-on-surface-variant">
+                        Chưa có lịch sử thanh toán
+                      </td>
+                    </tr>
+                  ) : (
+                    parent.tuitionHistory?.map((t: any) => (
+                      <tr key={t.id} className="hover:bg-surface-container-lowest transition-colors">
+                        <td className="p-3">{t.date}</td>
+                        <td className="p-3 font-medium">{t.amount?.toLocaleString('vi-VN')}đ</td>
+                        <td className="p-3">{t.studentName}</td>
+                        <td className="p-3">
+                          <StatusBadge status={t.status} size="sm" />
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

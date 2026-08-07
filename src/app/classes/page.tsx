@@ -13,7 +13,8 @@ export default async function ClassesPage() {
     .from('classes')
     .select(`
       *,
-      teacher:teachers(full_name)
+      teacher:teachers(full_name),
+      enrollments(status)
     `)
     .order('created_at', { ascending: false });
 
@@ -27,9 +28,9 @@ export default async function ClassesPage() {
     code: c.code,
     name: c.name,
     program: c.program,
-    teacherName: c.teacher ? c.teacher.full_name : 'Chưa phân công',
+    teacherName: c.teacher ? (c.teacher as any).full_name : 'Chưa phân công',
     capacity: c.capacity,
-    enrolled: Math.floor(Math.random() * c.capacity), // Mock enrolled count for now since enrollments table logic isn't built
+    enrolled: c.enrollments ? (c.enrollments as any[]).filter((e: any) => e.status === 'Đang học').length : 0,
     schedule: c.schedule,
     startDate: c.start_date,
     status: c.status,

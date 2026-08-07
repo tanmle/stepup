@@ -9,12 +9,7 @@ import Pagination from '@/components/ui/Pagination';
 
 const ITEMS_PER_PAGE = 10;
 const STATUS_FILTERS = ['Tất cả', 'Đang làm việc', 'Nghỉ phép', 'Nghỉ thai sản', 'Đã nghỉ việc'];
-const TEACHER_KPIS = [
-  { label: 'Tổng giáo viên', value: '45', sub: '+2 tháng này', icon: 'co_present', color: 'text-primary' },
-  { label: 'Giáo viên IELTS', value: '28', sub: '62% tổng số', icon: 'school', color: 'text-primary' },
-  { label: 'Giáo viên Giao tiếp', value: '17', sub: '38% tổng số', icon: 'record_voice_over', color: 'text-primary' },
-  { label: 'Lịch trống tuần này', value: '12', sub: 'Cần xếp lớp sớm', icon: 'event_available', color: 'text-error' },
-];
+// TEACHER_KPIS is now dynamically generated inside the component
 
 interface TeachersClientProps {
   initialTeachers: any[];
@@ -32,6 +27,27 @@ export default function TeachersClient({ initialTeachers }: TeachersClientProps)
   useEffect(() => {
     setTeachersList(initialTeachers);
   }, [initialTeachers]);
+
+  const teacherKpis = useMemo(() => {
+    const total = teachersList.length;
+    let ieltsCount = 0;
+    let giaoTiepCount = 0;
+    
+    teachersList.forEach(t => {
+      if (t.specializations?.some((s: string) => s.toLowerCase().includes('ielts'))) ieltsCount++;
+      if (t.specializations?.some((s: string) => s.toLowerCase().includes('giao tiếp'))) giaoTiepCount++;
+    });
+
+    const ieltsPercent = total > 0 ? Math.round((ieltsCount / total) * 100) : 0;
+    const giaoTiepPercent = total > 0 ? Math.round((giaoTiepCount / total) * 100) : 0;
+
+    return [
+      { label: 'Tổng giáo viên', value: total.toString(), sub: 'Hiện tại', icon: 'co_present', color: 'text-primary' },
+      { label: 'Giáo viên IELTS', value: ieltsCount.toString(), sub: `${ieltsPercent}% tổng số`, icon: 'school', color: 'text-primary' },
+      { label: 'Giáo viên Giao tiếp', value: giaoTiepCount.toString(), sub: `${giaoTiepPercent}% tổng số`, icon: 'record_voice_over', color: 'text-primary' },
+      { label: 'Đang làm việc', value: teachersList.filter((t:any) => t.status === 'Đang làm việc').length.toString(), sub: 'Hoạt động', icon: 'event_available', color: 'text-success' },
+    ];
+  }, [teachersList]);
 
   const handleDelete = (id: string) => {
     if (confirm('Bạn có chắc chắn muốn xóa giáo viên này? Hành động này không thể hoàn tác.')) {
@@ -90,10 +106,10 @@ export default function TeachersClient({ initialTeachers }: TeachersClientProps)
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-md">
-        {TEACHER_KPIS.map((kpi, i) => (
-          <div key={kpi.label} className="card p-md" style={{ animationDelay: `${i * 60}ms` }}>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-md mb-xl">
+          {teacherKpis.map((kpi, i) => (
+            <div key={i} className="card p-md flex flex-col hover:border-primary/20 transition-colors animate-fade-in" style={{ animationDelay: `${i * 50}ms` }}>
             <div className="flex items-center justify-between mb-md">
               <span className="text-label-sm text-on-surface-variant">{kpi.label}</span>
               <span className={`material-symbols-outlined text-[20px] ${kpi.color}/70`}>{kpi.icon}</span>

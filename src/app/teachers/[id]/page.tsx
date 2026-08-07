@@ -30,12 +30,18 @@ export default async function TeacherDetailPage({ params }: Props) {
     { data: attendanceData },
     { data: evaluationsData },
     { data: salaryData },
-    { data: documentsData }
+    { data: documentsData },
+    { data: sessionsData }
   ] = await Promise.all([
     supabase.from('teacher_attendance').select('*').eq('teacher_id', id).order('date', { ascending: false }),
     supabase.from('teacher_evaluations').select('*').eq('teacher_id', id).order('evaluation_date', { ascending: false }),
     supabase.from('teacher_salary_records').select('*').eq('teacher_id', id).order('month', { ascending: false }),
-    supabase.from('teacher_documents').select('*').eq('teacher_id', id)
+    supabase.from('teacher_documents').select('*').eq('teacher_id', id),
+    supabase.from('class_sessions').select(`
+      session_date,
+      start_time,
+      classes (code, capacity, color_key, enrollments(status))
+    `).eq('teacher_id', id)
   ]);
 
   // Format and augment the data with UI-specific mocked stats 
@@ -86,6 +92,14 @@ export default async function TeacherDetailPage({ params }: Props) {
     studentGoalRate: 92,
     studentRating: 4.8,
     reEnrollmentRate: 85,
+    classSessions: (sessionsData || []).map((s: any) => ({
+      date: s.session_date,
+      startTime: s.start_time,
+      code: s.classes?.code || 'N/A',
+      capacity: s.classes?.capacity || 0,
+      colorKey: s.classes?.color_key || 'primary',
+      enrolled: s.classes?.enrollments ? s.classes.enrollments.filter((e: any) => e.status === 'Đang học').length : 0,
+    })),
     currentClasses: [
       {
         code: 'IEL-102',

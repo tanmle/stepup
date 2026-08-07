@@ -428,10 +428,27 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                           <p className="text-label-sm text-on-surface-variant">{slot.split(' ').slice(1).join(' ')}</p>
                         </td>
                         {SCHEDULE_DAYS.map((_, di) => {
-                          const classForSlot = teacher.currentClasses?.[si * 2 + (di % 2)] as any | undefined;
+                          const date = new Date();
+                          const day = date.getDay();
+                          const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+                          const mondayDate = new Date(date.setDate(diff));
+                          const cellDate = new Date(mondayDate);
+                          cellDate.setDate(mondayDate.getDate() + di);
+                          // Adjust for timezone offset to match YYYY-MM-DD
+                          const cellDateStr = new Date(cellDate.getTime() - (cellDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+                          const classForSlot = teacher.classSessions?.find((s: any) => {
+                            if (s.date !== cellDateStr) return false;
+                            const hour = parseInt(s.startTime.split(':')[0], 10);
+                            if (si === 0 && hour >= 8 && hour < 12) return true; // Sáng
+                            if (si === 1 && hour >= 13 && hour < 18) return true; // Chiều
+                            if (si === 2 && hour >= 18) return true; // Tối
+                            return false;
+                          });
+
                           return (
                             <td key={di} className="py-sm px-sm text-center">
-                              {classForSlot && (di < 5) ? (
+                              {classForSlot ? (
                                 <div className={`rounded-lg p-xs border text-[11px] font-semibold ${COLOR_MAP[classForSlot.colorKey] || COLOR_MAP['primary']}`}>
                                   <p>{classForSlot.code}</p>
                                   <p className="text-[10px] font-normal opacity-80">{classForSlot.enrolled}/{classForSlot.capacity} HV</p>

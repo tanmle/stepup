@@ -35,6 +35,31 @@ export default async function StudentDetailPage({ params }: Props) {
     notFound();
   }
 
+  // Fetch tuition records
+  const { data: tuitionRecords } = await supabase
+    .from('tuition_records')
+    .select('*')
+    .eq('student_id', id)
+    .order('created_at', { ascending: false });
+
+  let currentDebt = 0;
+  const tuitionHistory = tuitionRecords || [];
+  tuitionHistory.forEach((t: any) => {
+    currentDebt += (t.remaining_amount || 0);
+  });
+
+  // Fetch session attendance
+  const { data: attendanceData } = await supabase
+    .from('session_attendance')
+    .select('status')
+    .eq('student_id', id);
+
+  let attendanceRate = 0;
+  if (attendanceData && attendanceData.length > 0) {
+    const present = attendanceData.filter((a: any) => a.status === 'Có mặt' || a.status === 'present').length;
+    attendanceRate = Math.round((present / attendanceData.length) * 100);
+  }
+
   // Format to match UI
   const formattedStudent = {
     id: s.id,
@@ -50,8 +75,9 @@ export default async function StudentDetailPage({ params }: Props) {
     avatarInitials: s.avatar_initials,
     
     // Mock data for UI until we build enrollments, payments, and parents
-    attendanceRate: 95,
-    currentDebt: 0,
+    attendanceRate: attendanceRate,
+    currentDebt: currentDebt,
+    tuitionHistory: tuitionHistory,
     parents: s.student_parents ? s.student_parents.map((sp: any) => ({
       id: sp.parents.id,
       fullName: sp.parents.full_name,
@@ -71,7 +97,14 @@ export default async function StudentDetailPage({ params }: Props) {
       attendanceRate: e.attendance_rate,
       status: e.status,
     })) : [],
-    payments: [],
+    payments: tuitionHistory.map((t: any) => ({
+      id: t.id,
+      method: t.payment_method || 'Chuyển khoản',
+      date: t.created_at ? new Date(t.created_at).toLocaleDateString('vi-VN') : '',
+      note: t.notes || '',
+      amount: t.paid_amount || t.amount || 0,
+      status: t.status
+    })),
     notes: [],
   };
 

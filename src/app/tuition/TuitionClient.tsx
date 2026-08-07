@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { TUITION_KPI } from '@/lib/data/tuition';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Pagination from '@/components/ui/Pagination';
 
@@ -10,9 +9,15 @@ const STATUS_FILTERS = ['Tất cả', 'Đã thu đủ', 'Sắp đến hạn', 'Q
 
 interface TuitionClientProps {
   initialRecords: any[];
+  kpi: {
+    expectedTotal: number;
+    collected: number;
+    overdueDebt: number;
+    upcomingDebt: number;
+  };
 }
 
-export default function TuitionClient({ initialRecords }: TuitionClientProps) {
+export default function TuitionClient({ initialRecords, kpi }: TuitionClientProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('Tất cả');
   const [currentPage, setCurrentPage] = useState(1);
@@ -22,7 +27,7 @@ export default function TuitionClient({ initialRecords }: TuitionClientProps) {
       const matchSearch =
         !search ||
         r.student.fullName.toLowerCase().includes(search.toLowerCase()) ||
-        r.student.code.toLowerCase().includes(search.toLowerCase()) ||
+        (r.student.code && r.student.code.toLowerCase().includes(search.toLowerCase())) ||
         r.className.toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === 'Tất cả' || r.status === statusFilter;
       return matchSearch && matchStatus;
@@ -32,12 +37,12 @@ export default function TuitionClient({ initialRecords }: TuitionClientProps) {
   const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
 
-  const collectedPct = Math.round((TUITION_KPI.collected / TUITION_KPI.expectedTotal) * 100);
+  const collectedPct = kpi.expectedTotal ? Math.round((kpi.collected / kpi.expectedTotal) * 100) : 0;
 
   const KPI_CARDS = [
     {
       label: 'Tổng học phí dự thu',
-      value: TUITION_KPI.expectedTotal,
+      value: kpi.expectedTotal,
       icon: 'account_balance_wallet',
       color: 'text-primary',
       bg: 'bg-primary/5',
@@ -46,14 +51,14 @@ export default function TuitionClient({ initialRecords }: TuitionClientProps) {
     },
     {
       label: 'Đã thu',
-      value: TUITION_KPI.collected,
+      value: kpi.collected,
       icon: 'check_circle',
       color: 'text-emerald-600',
       bg: 'bg-emerald-50',
     },
     {
       label: 'Công nợ quá hạn',
-      value: TUITION_KPI.overdueDebt,
+      value: kpi.overdueDebt,
       icon: 'warning',
       color: 'text-error',
       bg: 'bg-error-container',
@@ -61,7 +66,7 @@ export default function TuitionClient({ initialRecords }: TuitionClientProps) {
     },
     {
       label: 'Sắp đến hạn',
-      value: TUITION_KPI.upcomingDebt,
+      value: kpi.upcomingDebt,
       icon: 'schedule',
       color: 'text-amber-600',
       bg: 'bg-amber-50',

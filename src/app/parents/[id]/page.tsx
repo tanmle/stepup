@@ -41,6 +41,27 @@ export default async function ParentDetailPage({ params }: Props) {
 
   const allStudents = await getAllStudentsForSelect();
 
+  // Find all student ids
+  const studentIds = p.student_parents?.map((sp: any) => sp.students.id) || [];
+  
+  // query tuition_records for all students
+  let tuitionRecords: any[] = [];
+  if (studentIds.length > 0) {
+    const { data: trData } = await supabase
+      .from('tuition_records')
+      .select('*, students(full_name)')
+      .in('student_id', studentIds)
+      .order('created_at', { ascending: false });
+    if (trData) tuitionRecords = trData;
+  }
+
+  let totalDebt = 0;
+  let totalPaid = 0;
+  tuitionRecords.forEach((t: any) => {
+    totalDebt += (t.remaining_amount || 0);
+    totalPaid += (t.paid_amount || 0);
+  });
+
   // Format to camelCase for UI
   const formattedParent = {
     id: p.id,
@@ -60,6 +81,15 @@ export default async function ParentDetailPage({ params }: Props) {
     sourceNotes: p.source_notes || '',
     crmStatus: p.crm_status || 'Tiềm năng',
     interestLevel: p.interest_level || 3,
+    totalDebt: totalDebt,
+    totalPaid: totalPaid,
+    tuitionHistory: tuitionRecords.map((t: any) => ({
+      id: t.id,
+      date: t.created_at ? new Date(t.created_at).toLocaleDateString('vi-VN') : '',
+      amount: t.paid_amount || t.amount || 0,
+      studentName: t.students?.full_name || 'N/A',
+      status: t.status,
+    })),
     students: p.student_parents ? p.student_parents.map((sp: any) => ({
       relationship: sp.relationship,
       id: sp.students.id,

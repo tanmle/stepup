@@ -167,7 +167,7 @@ export default function ClassesClient({ initialClasses }: ClassesClientProps) {
                   <td className="px-md py-md">
                     <div className="flex gap-xs opacity-0 group-hover:opacity-100 transition-opacity justify-end">
                       <button 
-                        onClick={() => alert('Chi tiết lớp học đang được phát triển')}
+                        onClick={() => router.push('/classes/' + c.id)}
                         className="p-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors"
                       >
                         <span className="material-symbols-outlined text-[18px]">visibility</span>

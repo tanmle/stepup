@@ -38,33 +38,6 @@ export async function addClass(formData: FormData) {
     throw new Error('Failed to create class');
   }
 
-  // Generate class_sessions for the next 4 weeks (12 sessions total as an example)
-  // Real logic would parse the schedule string, but for now we create dummy sessions
-  if (newClass && startDate) {
-    const sessions = [];
-    const baseDate = new Date(startDate);
-    
-    for (let i = 0; i < 12; i++) {
-      const sessionDate = new Date(baseDate);
-      sessionDate.setDate(baseDate.getDate() + (i * 2)); // Add 2 days for each session as dummy data
-      
-      sessions.push({
-        class_id: newClass.id,
-        teacher_id: teacherId || null,
-        session_date: sessionDate.toISOString().split('T')[0],
-        start_time: '18:00:00',
-        end_time: '19:30:00',
-        room: `Phòng ${Math.floor(Math.random() * 10) + 1}`,
-        status: 'Chưa học'
-      });
-    }
-
-    const { error: sessionError } = await supabase.from('class_sessions').insert(sessions);
-    if (sessionError) {
-      console.error('Error adding class sessions:', sessionError);
-      // We don't throw here to not break the class creation, but in prod we would
-    }
-  }
 
   revalidatePath('/classes');
   revalidatePath('/schedule');
@@ -86,4 +59,88 @@ export async function deleteClass(id: string) {
 
   revalidatePath('/classes');
   revalidatePath('/schedule');
+}
+
+export async function addClassSession(classId: string, formData: FormData) {
+  const supabase = await createClient();
+  
+  const sessionDateStr = formData.get('sessionDate') as string;
+  const startTime = formData.get('startTime') as string;
+  const endTime = formData.get('endTime') as string;
+  const room = formData.get('room') as string;
+
+  if (!sessionDateStr || !startTime || !endTime || !room) {
+    throw new Error('Missing required fields');
+  }
+
+  // Fetch the default teacher for this class
+  const { data: classData } = await supabase.from('classes').select('teacher_id').eq('id', classId).single();
+  const teacherId = classData?.teacher_id || null;
+
+  const { error } = await supabase.from('class_sessions').insert({
+    class_id: classId,
+    teacher_id: teacherId,
+    session_date: sessionDateStr,
+    start_time: startTime + ':00',
+    end_time: endTime + ':00',
+    room: room,
+    status: 'Chưa học'
+  });
+
+  if (error) {
+    console.error('Error adding class session:', error);
+    throw new Error('Failed to add class session');
+  }
+
+  revalidatePath(`/classes/${classId}`);
+  revalidatePath('/schedule');
+  return { success: true };
+}
+
+export async function updateClassSession(sessionId: string, classId: string, formData: FormData) {
+  const supabase = await createClient();
+  
+  const sessionDateStr = formData.get('sessionDate') as string;
+  const startTime = formData.get('startTime') as string;
+  const endTime = formData.get('endTime') as string;
+  const room = formData.get('room') as string;
+  const status = formData.get('status') as string;
+  const teacherId = formData.get('teacherId') as string;
+
+  if (!sessionDateStr || !startTime || !endTime || !room) {
+    throw new Error('Missing required fields');
+  }
+
+  const { error } = await supabase.from('class_sessions').update({
+    session_date: sessionDateStr,
+    start_time: startTime.includes(':') && startTime.length === 5 ? startTime + ':00' : startTime,
+    end_time: endTime.includes(':') && endTime.length === 5 ? endTime + ':00' : endTime,
+    room: room,
+    teacher_id: teacherId || null,
+    status: status || 'Chưa học'
+  }).eq('id', sessionId);
+
+  if (error) {
+    console.error('Error updating class session:', error);
+    throw new Error('Failed to update class session');
+  }
+
+  revalidatePath(`/classes/${classId}`);
+  revalidatePath('/schedule');
+  return { success: true };
+}
+
+export async function deleteClassSession(sessionId: string, classId: string) {
+  const supabase = await createClient();
+  
+  const { error } = await supabase.from('class_sessions').delete().eq('id', sessionId);
+
+  if (error) {
+    console.error('Error deleting class session:', error);
+    throw new Error('Failed to delete class session');
+  }
+
+  revalidatePath(`/classes/${classId}`);
+  revalidatePath('/schedule');
+  return { success: true };
 }

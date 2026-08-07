@@ -20,12 +20,12 @@ export default function DashboardCharts({ revenueData, studentData }: DashboardC
       <div className="card p-lg flex flex-col">
         <div className="flex items-center justify-between mb-lg">
           <div>
-            <h2 className="text-title-lg text-on-background">Doanh thu 2024</h2>
+            <h2 className="text-title-lg text-on-background">Doanh thu {new Date().getFullYear()}</h2>
             <p className="text-label-sm text-on-surface-variant mt-xs">So sánh doanh thu và chi phí theo tháng</p>
           </div>
           <button className="btn-secondary" style={{ fontSize: '12px', padding: '6px 12px' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>filter_list</span>
-            Năm 2024
+            Năm {new Date().getFullYear()}
           </button>
         </div>
         <RevenueChart data={revenueData} />

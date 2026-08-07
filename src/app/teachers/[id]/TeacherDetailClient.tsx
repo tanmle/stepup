@@ -47,14 +47,14 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
   const [isAttModalOpen, setIsAttModalOpen] = useState(false);
 
   // States for salary
-  const [salMonth, setSalMonth] = useState('2024-01');
+  const [salMonth, setSalMonth] = useState(new Date().toISOString().split('T')[0].slice(0, 7));
   const [salTotalHours, setSalTotalHours] = useState('');
   const [salBaseSalary, setSalBaseSalary] = useState('');
   const [salAllowanceTotal, setSalAllowanceTotal] = useState('');
   const [salDeductions, setSalDeductions] = useState('');
   
   // States for evaluation
-  const [evalMonth, setEvalMonth] = useState('2024-01');
+  const [evalMonth, setEvalMonth] = useState(new Date().toISOString().split('T')[0].slice(0, 7));
   const [evalScores, setEvalScores] = useState({
     chuyenMon: 0,
     chuyenCan: 0,

@@ -60,7 +60,7 @@ export default function ReportsClient({ data }: ReportsClientProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-headline-lg text-on-background">Báo cáo tài chính</h1>
-          <p className="text-body-md text-on-surface-variant mt-xs">Tổng quan tài chính trung tâm — Năm 2024</p>
+          <p className="text-body-md text-on-surface-variant mt-xs">Tổng quan tài chính trung tâm — Năm {new Date().getFullYear()}</p>
         </div>
         <div className="flex gap-sm">
           <button className="btn-secondary">
@@ -117,11 +117,11 @@ export default function ReportsClient({ data }: ReportsClientProps) {
           <div className="flex items-center justify-between mb-lg">
             <div>
               <h2 className="text-title-lg text-on-background">Doanh thu & Chi phí</h2>
-              <p className="text-label-sm text-on-surface-variant mt-xs">Theo tháng — Năm 2024</p>
+              <p className="text-label-sm text-on-surface-variant mt-xs">Theo tháng — Năm {new Date().getFullYear()}</p>
             </div>
             <button className="btn-secondary text-[12px] px-sm py-xs">
               <span className="material-symbols-outlined text-[14px]">filter_list</span>
-              Năm 2024
+              Năm {new Date().getFullYear()}
             </button>
           </div>
           <ReportsRevenueChart data={data.monthlyRevenue} />

@@ -73,9 +73,35 @@ export async function addClassSession(classId: string, formData: FormData) {
     throw new Error('Missing required fields');
   }
 
-  // Fetch the default teacher for this class
-  const { data: classData } = await supabase.from('classes').select('teacher_id').eq('id', classId).single();
-  const teacherId = classData?.teacher_id || null;
+  const formTeacherId = formData.get('teacherId') as string;
+
+  // Fetch the default teacher for this class if not provided in form
+  let teacherId = formTeacherId;
+  if (!teacherId) {
+    const { data: classData } = await supabase.from('classes').select('teacher_id').eq('id', classId).single();
+    teacherId = classData?.teacher_id || null;
+  }
+
+  // Check for room & teacher conflict
+  const { data: conflicts } = await supabase
+    .from('class_sessions')
+    .select('id, room, teacher_id')
+    .eq('session_date', sessionDateStr)
+    .neq('status', 'Nghỉ/Bù')
+    .or(`and(start_time.lte.${startTime}:00,end_time.gt.${startTime}:00),and(start_time.lt.${endTime}:00,end_time.gte.${endTime}:00),and(start_time.gte.${startTime}:00,end_time.lte.${endTime}:00)`);
+    
+  if (conflicts && conflicts.length > 0) {
+    const roomConflict = room ? conflicts.find(c => c.room === room) : null;
+    const teacherConflict = teacherId ? conflicts.find(c => c.teacher_id === teacherId) : null;
+    
+    if (roomConflict && teacherConflict) {
+      return { success: false, error: 'Trùng lịch: Cả phòng học và giáo viên đều đã được xếp lịch trong khung giờ này!' };
+    } else if (roomConflict) {
+      return { success: false, error: 'Trùng lịch: Phòng học này đã được xếp lịch trong khung giờ này!' };
+    } else if (teacherConflict) {
+      return { success: false, error: 'Trùng lịch: Giáo viên này đã có lịch dạy trong khung giờ này!' };
+    }
+  }
 
   const { error } = await supabase.from('class_sessions').insert({
     class_id: classId,
@@ -89,7 +115,7 @@ export async function addClassSession(classId: string, formData: FormData) {
 
   if (error) {
     console.error('Error adding class session:', error);
-    throw new Error('Failed to add class session');
+    return { success: false, error: 'Lỗi hệ thống: Không thể thêm buổi học' };
   }
 
   revalidatePath(`/classes/${classId}`);
@@ -111,18 +137,43 @@ export async function updateClassSession(sessionId: string, classId: string, for
     throw new Error('Missing required fields');
   }
 
-  const { error } = await supabase.from('class_sessions').update({
-    session_date: sessionDateStr,
-    start_time: startTime.includes(':') && startTime.length === 5 ? startTime + ':00' : startTime,
-    end_time: endTime.includes(':') && endTime.length === 5 ? endTime + ':00' : endTime,
-    room: room,
-    teacher_id: teacherId || null,
-    status: status || 'Chưa học'
-  }).eq('id', sessionId);
+  // Check for room & teacher conflict
+  if (sessionDateStr && startTime && endTime && status !== 'Nghỉ/Bù') {
+    const { data: conflicts } = await supabase
+      .from('class_sessions')
+      .select('id, room, teacher_id')
+      .neq('id', sessionId)
+      .eq('session_date', sessionDateStr)
+      .neq('status', 'Nghỉ/Bù')
+      .or(`and(start_time.lte.${startTime}:00,end_time.gt.${startTime}:00),and(start_time.lt.${endTime}:00,end_time.gte.${endTime}:00),and(start_time.gte.${startTime}:00,end_time.lte.${endTime}:00)`);
+      
+    if (conflicts && conflicts.length > 0) {
+      const roomConflict = room ? conflicts.find(c => c.room === room) : null;
+      const teacherConflict = teacherId ? conflicts.find(c => c.teacher_id === teacherId) : null;
+      
+      if (roomConflict && teacherConflict) {
+        return { success: false, error: 'Trùng lịch: Cả phòng học và giáo viên đều đã được xếp lịch trong khung giờ này!' };
+      } else if (roomConflict) {
+        return { success: false, error: 'Trùng lịch: Phòng học này đã được xếp lịch trong khung giờ này!' };
+      } else if (teacherConflict) {
+        return { success: false, error: 'Trùng lịch: Giáo viên này đã có lịch dạy trong khung giờ này!' };
+      }
+    }
+  }
+
+  const updateData: any = {};
+  if (sessionDateStr) updateData.session_date = sessionDateStr;
+  if (startTime) updateData.start_time = startTime.includes(':') && startTime.length === 5 ? startTime + ':00' : startTime;
+  if (endTime) updateData.end_time = endTime.includes(':') && endTime.length === 5 ? endTime + ':00' : endTime;
+  if (room) updateData.room = room;
+  if (status) updateData.status = status;
+  updateData.teacher_id = teacherId || null;
+
+  const { error } = await supabase.from('class_sessions').update(updateData).eq('id', sessionId);
 
   if (error) {
     console.error('Error updating class session:', error);
-    throw new Error('Failed to update class session');
+    return { success: false, error: 'Lỗi hệ thống: Không thể cập nhật buổi học' };
   }
 
   revalidatePath(`/classes/${classId}`);

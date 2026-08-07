@@ -38,11 +38,19 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
     .eq('class_id', id)
     .order('session_date', { ascending: true });
 
+  // Fetch rooms
+  const { data: rooms } = await supabase
+    .from('rooms')
+    .select('*')
+    .eq('status', 'Sẵn sàng')
+    .order('name');
+
   return (
     <ClassDetailClient 
       cls={cls} 
       enrollments={enrollments || []} 
       sessions={sessions || []} 
+      rooms={rooms || []}
     />
   );
 }

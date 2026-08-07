@@ -10,9 +10,10 @@ interface ClassDetailClientProps {
   cls: any;
   enrollments: any[];
   sessions: any[];
+  rooms: any[];
 }
 
-export default function ClassDetailClient({ cls, enrollments, sessions }: ClassDetailClientProps) {
+export default function ClassDetailClient({ cls, enrollments, sessions, rooms }: ClassDetailClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'schedule'>('overview');
   const [isPending, startTransition] = useTransition();
@@ -24,17 +25,24 @@ export default function ClassDetailClient({ cls, enrollments, sessions }: ClassD
     
     startTransition(async () => {
       try {
+        let response;
         if (editingSession) {
-          await updateClassSession(editingSession.id, cls.id, formData);
+          response = await updateClassSession(editingSession.id, cls.id, formData);
         } else {
-          await addClassSession(cls.id, formData);
+          response = await addClassSession(cls.id, formData);
         }
+        
+        if (response && !response.success && response.error) {
+          alert(response.error);
+          return;
+        }
+
         setEditingSession(null);
         (e.target as HTMLFormElement).reset();
         router.refresh();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error saving session:', error);
-        alert('Lưu buổi học thất bại.');
+        alert(error.message || 'Lưu buổi học thất bại.');
       }
     });
   };
@@ -46,9 +54,9 @@ export default function ClassDetailClient({ cls, enrollments, sessions }: ClassD
       try {
         await deleteClassSession(sessionId, cls.id);
         router.refresh();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error deleting session:', error);
-        alert('Xóa buổi học thất bại.');
+        alert(error.message || 'Xóa buổi học thất bại.');
       }
     });
   };
@@ -258,13 +266,21 @@ export default function ClassDetailClient({ cls, enrollments, sessions }: ClassD
                 </div>
                 <div className="flex flex-col gap-xs">
                   <label className="text-label-sm text-on-surface">Phòng học</label>
-                  <input 
+                  <select 
                     name="room" 
-                    type="text" 
                     required 
-                    defaultValue={editingSession ? editingSession.room : 'Phòng học'}
+                    defaultValue={editingSession ? editingSession.room : ''}
                     className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50" 
-                  />
+                  >
+                    <option value="">-- Chọn phòng học --</option>
+                    {rooms.map(r => (
+                      <option key={r.id} value={r.name}>{r.name} (Sức chứa: {r.capacity})</option>
+                    ))}
+                    {/* Fallback for existing rooms not in DB */}
+                    {editingSession && editingSession.room && !rooms.some(r => r.name === editingSession.room) && (
+                      <option value={editingSession.room}>{editingSession.room} (Phòng cũ)</option>
+                    )}
+                  </select>
                 </div>
                 {editingSession && (
                   <div className="flex flex-col gap-xs">

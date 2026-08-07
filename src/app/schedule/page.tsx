@@ -17,7 +17,9 @@ export default async function SchedulePage() {
 
   const [
     { data: sessions, error: sessionsError },
-    { data: teachers, error: teachersError }
+    { data: teachers, error: teachersError },
+    { data: classes, error: classesError },
+    { data: rooms, error: roomsError }
   ] = await Promise.all([
     supabase
       .from('class_sessions')
@@ -37,7 +39,9 @@ export default async function SchedulePage() {
       .lte('session_date', futureDate.toISOString().split('T')[0])
       .order('session_date', { ascending: true })
       .order('start_time', { ascending: true }),
-    supabase.from('teachers').select('id, full_name').order('full_name')
+    supabase.from('teachers').select('id, full_name').order('full_name'),
+    supabase.from('classes').select('id, code, name, teacher_id').in('status', ['Sắp mở', 'Đang hoạt động', 'Đang học']).order('code'),
+    supabase.from('rooms').select('id, name, capacity').eq('status', 'Sẵn sàng').order('name')
   ]);
 
   if (sessionsError) console.error('Error fetching class sessions:', sessionsError);
@@ -58,5 +62,5 @@ export default async function SchedulePage() {
     teacherName: (s.teachers as any)?.full_name || 'Chưa phân công',
   }));
 
-  return <ScheduleClient sessions={formattedSessions} teachers={teachers || []} />;
+  return <ScheduleClient sessions={formattedSessions} teachers={teachers || []} classes={classes || []} rooms={rooms || []} />;
 }

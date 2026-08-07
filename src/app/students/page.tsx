@@ -15,7 +15,7 @@ export default async function StudentsPage() {
     .select(`
       *,
       student_parents(
-        parents(full_name)
+        parents(id, full_name, phone)
       ),
       enrollments(
         status,
@@ -44,7 +44,9 @@ export default async function StudentsPage() {
     attendanceRate: s.attendance_rate,
     currentDebt: s.current_debt,
     parents: s.student_parents?.length > 0 ? s.student_parents.map((sp: any) => ({
-      fullName: sp.parents?.full_name || '—'
+      id: sp.parents?.id,
+      fullName: sp.parents?.full_name || '—',
+      phone: sp.parents?.phone || ''
     })) : [],
     enrolledClasses: s.enrollments ? s.enrollments.filter((e: any) => e.status === 'Đang học').map((e: any) => e.classes?.name) : [],
   }));

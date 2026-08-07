@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { updateClassSession, deleteClassSession } from '../classes/actions';
+import { addClassSession, updateClassSession, deleteClassSession } from '../classes/actions';
 
 const COLOR_MAP: Record<string, string> = {
   primary: 'bg-primary/10 text-primary border-primary/20',
@@ -31,18 +31,28 @@ interface Teacher {
   full_name: string;
 }
 
+interface Class {
+  id: string;
+  code: string;
+  name: string;
+  teacher_id: string;
+}
+
 interface ScheduleClientProps {
   sessions: Session[];
   teachers: Teacher[];
+  classes: Class[];
+  rooms: any[];
 }
 
-export default function ScheduleClient({ sessions, teachers }: ScheduleClientProps) {
+export default function ScheduleClient({ sessions, teachers, classes, rooms }: ScheduleClientProps) {
   const router = useRouter();
   const [view, setView] = useState<'month' | 'week'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   
-  // Edit Modal State
+  // Edit/Create Modal State
   const [editingSession, setEditingSession] = useState<Session | null>(null);
+  const [creatingSessionDate, setCreatingSessionDate] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Navigation functions
@@ -135,19 +145,45 @@ export default function ScheduleClient({ sessions, teachers }: ScheduleClientPro
   }, [sessions]);
 
   // Actions
-  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveEdit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editingSession) return;
     const formData = new FormData(e.currentTarget);
     
     startTransition(async () => {
       try {
-        await updateClassSession(editingSession.id, editingSession.classId, formData);
+        const response = await updateClassSession(editingSession.id, editingSession.classId, formData);
+        if (response && !response.success && response.error) {
+          alert(response.error);
+          return;
+        }
         setEditingSession(null);
         router.refresh();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error saving session:', error);
-        alert('Cập nhật thất bại.');
+        alert(error.message || 'Cập nhật thất bại.');
+      }
+    });
+  };
+
+  const handleSaveCreate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!creatingSessionDate) return;
+    const formData = new FormData(e.currentTarget);
+    const classId = formData.get('classId') as string;
+    
+    startTransition(async () => {
+      try {
+        const response = await addClassSession(classId, formData);
+        if (response && !response.success && response.error) {
+          alert(response.error);
+          return;
+        }
+        setCreatingSessionDate(null);
+        router.refresh();
+      } catch (error: any) {
+        console.error('Error creating session:', error);
+        alert(error.message || 'Thêm buổi học thất bại.');
       }
     });
   };
@@ -161,9 +197,9 @@ export default function ScheduleClient({ sessions, teachers }: ScheduleClientPro
         await deleteClassSession(editingSession.id, editingSession.classId);
         setEditingSession(null);
         router.refresh();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error deleting session:', error);
-        alert('Xóa thất bại.');
+        alert(error.message || 'Xóa buổi học thất bại.');
       }
     });
   };
@@ -172,7 +208,7 @@ export default function ScheduleClient({ sessions, teachers }: ScheduleClientPro
   const renderSessionCard = (session: Session) => (
     <div 
       key={session.id} 
-      onClick={() => setEditingSession(session)}
+      onClick={(e) => { e.stopPropagation(); setEditingSession(session); }}
       className={`rounded p-1 mb-1 text-[11px] cursor-pointer hover:brightness-95 transition-all border-l-2 ${COLOR_MAP[session.colorKey] || COLOR_MAP['primary']}`}
     >
       <div className="font-bold flex items-center justify-between">
@@ -259,7 +295,8 @@ export default function ScheduleClient({ sessions, teachers }: ScheduleClientPro
                 return (
                   <div 
                     key={dateStr} 
-                    className={`min-h-[120px] p-1 border-r border-b border-outline-variant/10 transition-colors ${!dayObj.isCurrentMonth ? 'bg-surface-container-lowest/50 opacity-60' : 'bg-surface hover:bg-surface-container-lowest'}`}
+                    onClick={() => setCreatingSessionDate(dateStr)}
+                    className={`cursor-pointer min-h-[120px] p-1 border-r border-b border-outline-variant/10 transition-colors ${!dayObj.isCurrentMonth ? 'bg-surface-container-lowest/50 opacity-60' : 'bg-surface hover:bg-surface-container-lowest'}`}
                   >
                     <div className={`text-right text-label-sm mb-1 ${isToday ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>
                       <span className={isToday ? 'bg-primary/10 px-2 py-0.5 rounded-full' : ''}>
@@ -281,7 +318,11 @@ export default function ScheduleClient({ sessions, teachers }: ScheduleClientPro
                 const isToday = dateStr === formatYMD(new Date());
                 
                 return (
-                  <div key={dateStr} className={`p-sm border-r border-outline-variant/10 min-h-full ${isToday ? 'bg-primary/5' : 'bg-surface'}`}>
+                  <div 
+                    key={dateStr} 
+                    onClick={() => setCreatingSessionDate(dateStr)}
+                    className={`cursor-pointer p-sm border-r border-outline-variant/10 min-h-full ${isToday ? 'bg-primary/5' : 'bg-surface'} hover:bg-surface-container-lowest transition-colors`}
+                  >
                     <div className="flex flex-col gap-2">
                       {daySessions.length === 0 ? (
                         <div className="text-center py-lg text-[12px] text-on-surface-variant/50">Trống</div>
@@ -314,7 +355,7 @@ export default function ScheduleClient({ sessions, teachers }: ScheduleClientPro
               </button>
             </div>
             
-            <form onSubmit={handleSave} className="p-lg flex flex-col gap-md">
+            <form onSubmit={handleSaveEdit} className="p-lg flex flex-col gap-md">
               <div className="grid grid-cols-2 gap-md">
                 <div className="col-span-2">
                   <label className="text-label-sm font-medium text-on-surface mb-xs block">Ngày học</label>
@@ -359,15 +400,22 @@ export default function ScheduleClient({ sessions, teachers }: ScheduleClientPro
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="col-span-2">
                   <label className="text-label-sm font-medium text-on-surface mb-xs block">Phòng học</label>
-                  <input 
+                  <select 
                     name="room" 
-                    type="text" 
                     required 
                     defaultValue={editingSession.room}
                     className="input-field w-full" 
-                  />
+                  >
+                    <option value="">-- Chọn phòng học --</option>
+                    {rooms.map(r => (
+                      <option key={r.id} value={r.name}>{r.name} (Sức chứa: {r.capacity})</option>
+                    ))}
+                    {editingSession.room && !rooms.some(r => r.name === editingSession.room) && (
+                      <option value={editingSession.room}>{editingSession.room} (Phòng cũ)</option>
+                    )}
+                  </select>
                 </div>
                 <div>
                   <label className="text-label-sm font-medium text-on-surface mb-xs block">Trạng thái</label>
@@ -410,6 +458,127 @@ export default function ScheduleClient({ sessions, teachers }: ScheduleClientPro
                     {isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
                   </button>
                 </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Modal */}
+      {creatingSessionDate && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-md animate-fade-in">
+          <div className="bg-surface rounded-2xl shadow-xl w-[450px] max-w-[95vw] overflow-hidden">
+            <div className="px-lg py-md border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
+              <div>
+                <h3 className="text-title-lg font-bold text-on-background">Thêm buổi học mới</h3>
+                <p className="text-label-sm text-on-surface-variant">Lên lịch trực tiếp từ Calendar</p>
+              </div>
+              <button 
+                onClick={() => setCreatingSessionDate(null)}
+                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container-high transition-colors text-on-surface-variant"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveCreate} className="p-lg flex flex-col gap-md">
+              <div className="grid grid-cols-2 gap-md">
+                <div className="col-span-2">
+                  <label className="text-label-sm font-medium text-on-surface mb-xs block">Lớp học</label>
+                  <select 
+                    name="classId"
+                    required
+                    className="input-field w-full font-bold text-primary"
+                    onChange={(e) => {
+                      // Optionally auto-select default teacher
+                      const cls = classes.find(c => c.id === e.target.value);
+                      if (cls) {
+                        const teacherSelect = document.getElementById('createTeacherId') as HTMLSelectElement;
+                        if (teacherSelect) teacherSelect.value = cls.teacher_id || '';
+                      }
+                    }}
+                  >
+                    <option value="">-- Chọn lớp học --</option>
+                    {classes.map(c => (
+                      <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-label-sm font-medium text-on-surface mb-xs block">Ngày học</label>
+                  <input 
+                    name="sessionDate" 
+                    type="date" 
+                    required 
+                    defaultValue={creatingSessionDate}
+                    className="input-field w-full" 
+                  />
+                </div>
+                <div>
+                  <label className="text-label-sm font-medium text-on-surface mb-xs block">Giờ bắt đầu</label>
+                  <input 
+                    name="startTime" 
+                    type="time" 
+                    required 
+                    defaultValue="18:00"
+                    className="input-field w-full" 
+                  />
+                </div>
+                <div>
+                  <label className="text-label-sm font-medium text-on-surface mb-xs block">Giờ kết thúc</label>
+                  <input 
+                    name="endTime" 
+                    type="time" 
+                    required 
+                    defaultValue="19:30"
+                    className="input-field w-full" 
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-label-sm font-medium text-on-surface mb-xs block">Giáo viên phụ trách</label>
+                  <select 
+                    id="createTeacherId"
+                    name="teacherId"
+                    className="input-field w-full"
+                  >
+                    <option value="">-- Theo mặc định của lớp --</option>
+                    {teachers.map(t => (
+                      <option key={t.id} value={t.id}>{t.full_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-label-sm font-medium text-on-surface mb-xs block">Phòng học</label>
+                  <select 
+                    name="room" 
+                    required 
+                    defaultValue=""
+                    className="input-field w-full" 
+                  >
+                    <option value="">-- Chọn phòng học --</option>
+                    {rooms.map(r => (
+                      <option key={r.id} value={r.name}>{r.name} (Sức chứa: {r.capacity})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-end mt-sm pt-sm border-t border-outline-variant/10 gap-sm">
+                <button 
+                  type="button"
+                  onClick={() => setCreatingSessionDate(null)}
+                  className="btn-secondary"
+                  disabled={isPending}
+                >
+                  Hủy
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isPending}
+                  className="btn-primary"
+                >
+                  {isPending ? 'Đang tạo...' : 'Tạo buổi học'}
+                </button>
               </div>
             </form>
           </div>

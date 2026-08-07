@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { label: 'Giáo viên', icon: 'person_apron', href: '/teachers' },
   { label: 'Lớp học', icon: 'class', href: '/classes' },
   { label: 'Lịch dạy', icon: 'calendar_month', href: '/schedule' },
+  { label: 'Phòng học', icon: 'meeting_room', href: '/rooms' },
   { label: 'Học phí & Công nợ', icon: 'payments', href: '/tuition' },
   { label: 'Báo cáo tài chính', icon: 'analytics', href: '/reports' },
 ];

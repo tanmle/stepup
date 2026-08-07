@@ -118,9 +118,9 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
       </div>
 
       {/* Main Content Card */}
-      <div className="card overflow-hidden">
+      <div className="card">
         {/* Desktop Table View */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden md:block">
           <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-outline-variant/20 bg-surface-container-low/50">
@@ -133,8 +133,12 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
             </thead>
             <tbody className="divide-y divide-outline-variant/10">
               {paginated.map((p: any) => (
-                <tr key={p.id} className="hover:bg-primary/[0.02] transition-colors group">
-                  <td className="px-md py-md">
+                <tr 
+                  key={p.id} 
+                  className="hover:bg-primary/[0.02] transition-colors group cursor-pointer relative hover:z-50"
+                  onClick={() => router.push(`/parents/${p.id}`)}
+                >
+                  <td className="px-md py-md" onClick={(e) => e.stopPropagation()}>
                     <Link href={`/parents/${p.id}`} className="flex items-center gap-sm group-hover:text-primary transition-colors">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                         {p.fullName.charAt(0).toUpperCase()}
@@ -163,12 +167,38 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                       </span>
                     )}
                   </td>
-                  <td className="px-md py-md">
-                    <div className="flex items-center gap-xs">
+                  <td className="px-md py-md relative group/tooltip">
+                    <div className="flex items-center gap-xs cursor-default">
                       <span className="material-symbols-outlined text-[16px] text-primary">school</span>
                       <span className="text-body-md font-semibold text-primary">{p.linkedStudentsCount}</span>
                       <span className="text-label-sm text-on-surface-variant ml-xs">học viên</span>
                     </div>
+                    {/* Tooltip for linked students */}
+                    {p.linkedStudents?.length > 0 && (
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-surface-container-highest rounded-xl shadow-lg border border-outline-variant/20 p-2 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50">
+                        <div className="text-label-sm font-semibold text-on-surface mb-1 px-1">Học viên liên kết:</div>
+                        <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto">
+                          {p.linkedStudents.map((student: any) => (
+                            <Link 
+                              key={student.id} 
+                              href={`/students/${student.id}`}
+                              className="flex items-center gap-2 p-1.5 hover:bg-surface rounded-lg transition-colors group/student"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className={`w-6 h-6 rounded-md flex items-center justify-center font-bold text-[10px] flex-shrink-0 ${student.avatar_color}`}>
+                                {student.avatar_initials}
+                              </div>
+                              <div className="flex-1 min-w-0 text-left">
+                                <div className="text-body-sm font-medium text-on-surface truncate group-hover/student:text-primary transition-colors">{student.full_name}</div>
+                                <div className="text-[10px] text-on-surface-variant font-mono">{student.code}</div>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                        {/* Triangle pointer */}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-solid border-t-surface-container-highest border-t-8 border-x-transparent border-x-8 border-b-0" />
+                      </div>
+                    )}
                   </td>
                   <td className="px-md py-md">
                     <div className="flex gap-xs opacity-0 group-hover:opacity-100 transition-opacity justify-end">

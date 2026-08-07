@@ -157,9 +157,15 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
                   <span className="material-symbols-outlined text-[14px]">cake</span>
                   {student.dateOfBirth}
                 </div>
-                <div className="flex items-center gap-1 col-span-2">
+                <div className="flex items-center gap-1 col-span-2" onClick={(e) => e.stopPropagation()}>
                   <span className="material-symbols-outlined text-[14px]">family_restroom</span>
-                  {student.parents[0]?.fullName ? `${student.parents[0].fullName} (${student.parents[0].phone || ''})` : '—'}
+                  {student.parents[0]?.id ? (
+                    <Link href={`/parents/${student.parents[0].id}`} className="hover:text-primary transition-colors hover:underline">
+                      {student.parents[0].fullName} {student.parents[0].phone ? `(${student.parents[0].phone})` : ''}
+                    </Link>
+                  ) : (
+                    '—'
+                  )}
                 </div>
                 {student.enrolledClasses?.length > 0 && (
                   <div className="flex items-center gap-1 col-span-2 flex-wrap">
@@ -220,6 +226,7 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
                 <tr
                   key={student.id}
                   className="group table-row-hover cursor-pointer"
+                  onClick={() => router.push(`/students/${student.id}`)}
                 >
                   <td className="px-lg py-md" onClick={(e) => e.stopPropagation()}>
                     <input
@@ -263,8 +270,14 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
                   <td className="px-md py-md">
                     <StatusBadge status={student.status} />
                   </td>
-                  <td className="px-md py-md text-body-md text-on-surface-variant">
-                    {student.parents[0]?.fullName ?? '—'}
+                  <td className="px-md py-md text-body-md text-on-surface-variant" onClick={(e) => e.stopPropagation()}>
+                    {student.parents[0]?.id ? (
+                      <Link href={`/parents/${student.parents[0].id}`} className="hover:text-primary transition-colors hover:underline">
+                        {student.parents[0].fullName}
+                      </Link>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td className="px-md py-md">
                     <div className="flex gap-xs opacity-0 group-hover:opacity-100 transition-opacity justify-end">

@@ -15,7 +15,10 @@ export default async function ParentsPage() {
     .from('parents')
     .select(`
       *,
-      student_parents(student_id, relationship)
+      student_parents(
+        relationship,
+        students(id, full_name, code, avatar_color, avatar_initials)
+      )
     `)
     .order('created_at', { ascending: false });
 
@@ -32,6 +35,7 @@ export default async function ParentsPage() {
     job: p.job,
     notes: p.notes,
     linkedStudentsCount: p.student_parents ? p.student_parents.length : 0,
+    linkedStudents: p.student_parents ? p.student_parents.map((sp: any) => sp.students) : [],
   }));
 
   return <ParentsClient initialParents={formattedParents} />;

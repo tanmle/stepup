@@ -15,6 +15,16 @@ export async function addTeacher(formData: FormData) {
   const degree = formData.get('degree') as string;
   const institution = formData.get('institution') as string;
   const yearsOfExperience = parseInt((formData.get('yearsOfExperience') as string) || '0', 10);
+  
+  const dateOfBirth = formData.get('dateOfBirth') as string;
+  const idCard = formData.get('idCard') as string;
+  const address = formData.get('address') as string;
+  const gender = formData.get('gender') as string;
+  const startDate = formData.get('startDate') as string;
+  const major = formData.get('major') as string;
+  const englishLevel = formData.get('englishLevel') as string;
+  const salaryType = formData.get('salaryType') as string;
+  const salaryRate = parseFloat((formData.get('salaryRate') as string) || '0');
 
   // Generate initials
   const initials = fullName
@@ -35,10 +45,6 @@ export async function addTeacher(formData: FormData) {
   ];
   const color = colors[Math.floor(Math.random() * colors.length)];
 
-  // Default values for arrays
-  const certificates = ['IELTS 8.0+', 'TESOL'];
-  const specializations = ['Luyện thi IELTS', 'Giao tiếp nâng cao'];
-
   const { error } = await supabase.from('teachers').insert([
     {
       code,
@@ -48,10 +54,17 @@ export async function addTeacher(formData: FormData) {
       degree: degree || null,
       institution: institution || null,
       years_of_experience: yearsOfExperience,
-      status: 'Nhận lớp',
+      date_of_birth: dateOfBirth || null,
+      id_card: idCard || null,
+      address: address || null,
+      gender: gender || null,
+      start_date: startDate || null,
+      major: major || null,
+      english_level: englishLevel || null,
+      salary_type: salaryType || null,
+      salary_rate: salaryRate || 0,
+      status: 'Đang làm việc',
       rating: 5.0, // Default rating for new teachers
-      certificates,
-      specializations,
       avatar_initials: initials,
       avatar_color: color,
     },
@@ -92,6 +105,17 @@ export async function updateTeacher(id: string, formData: FormData) {
   const institution = formData.get('institution') as string;
   const yearsOfExperience = parseInt((formData.get('yearsOfExperience') as string) || '0', 10);
   
+  const dateOfBirth = formData.get('dateOfBirth') as string;
+  const idCard = formData.get('idCard') as string;
+  const address = formData.get('address') as string;
+  const gender = formData.get('gender') as string;
+  const startDate = formData.get('startDate') as string;
+  const major = formData.get('major') as string;
+  const englishLevel = formData.get('englishLevel') as string;
+  const salaryType = formData.get('salaryType') as string;
+  const salaryRate = parseFloat((formData.get('salaryRate') as string) || '0');
+  const status = formData.get('status') as string;
+  
   const certificatesRaw = formData.get('certificates') as string;
   const specializationsRaw = formData.get('specializations') as string;
 
@@ -107,6 +131,16 @@ export async function updateTeacher(id: string, formData: FormData) {
       degree: degree || null,
       institution: institution || null,
       years_of_experience: yearsOfExperience,
+      date_of_birth: dateOfBirth || null,
+      id_card: idCard || null,
+      address: address || null,
+      gender: gender || null,
+      start_date: startDate || null,
+      major: major || null,
+      english_level: englishLevel || null,
+      salary_type: salaryType || null,
+      salary_rate: salaryRate || 0,
+      status: status || 'Đang làm việc',
       certificates,
       specializations,
       updated_at: new Date().toISOString(),
@@ -120,5 +154,56 @@ export async function updateTeacher(id: string, formData: FormData) {
 
   revalidatePath('/teachers');
   revalidatePath(`/teachers/${id}`);
+  return { success: true };
+}
+
+export async function addTeacherAttendance(formData: FormData) {
+  const supabase = await createClient();
+  const data = Object.fromEntries(formData.entries());
+  
+  const { error } = await supabase.from('teacher_attendance').insert([data]);
+  if (error) {
+    console.error('Error adding teacher attendance:', error);
+    throw new Error('Failed to create attendance record');
+  }
+  return { success: true };
+}
+
+export async function addTeacherEvaluation(formData: FormData) {
+  const supabase = await createClient();
+  const data = Object.fromEntries(formData.entries());
+  
+  const { error } = await supabase.from('teacher_evaluations').insert([data]);
+  if (error) {
+    console.error('Error adding teacher evaluation:', error);
+    throw new Error('Failed to create evaluation record');
+  }
+  return { success: true };
+}
+
+export async function addTeacherSalaryRecord(formData: FormData) {
+  const supabase = await createClient();
+  const data = Object.fromEntries(formData.entries());
+  
+  const { error } = await supabase.from('teacher_salary_records').insert([data]);
+  if (error) {
+    console.error('Error adding teacher salary record:', error);
+    throw new Error('Failed to create salary record');
+  }
+  return { success: true };
+}
+
+export async function deleteTeacherAttendance(id: string) {
+  const supabase = await createClient();
+  
+  const { error } = await supabase
+    .from('teacher_attendance')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting teacher attendance:', error);
+    throw new Error('Failed to delete attendance record');
+  }
   return { success: true };
 }

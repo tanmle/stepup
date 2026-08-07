@@ -21,7 +21,7 @@ export default async function NewStudentPage() {
   // Fetch active or upcoming classes
   const { data: classes, error: classesError } = await supabase
     .from('classes')
-    .select('id, name, code, program, capacity, price')
+    .select('id, name, code, program, level, capacity, price')
     .in('status', ['Đang học', 'Sắp mở'])
     .order('created_at', { ascending: false });
 

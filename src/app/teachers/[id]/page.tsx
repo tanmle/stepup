@@ -25,8 +25,20 @@ export default async function TeacherDetailPage({ params }: Props) {
     notFound();
   }
 
+  // Fetch additional data
+  const [
+    { data: attendanceData },
+    { data: evaluationsData },
+    { data: salaryData },
+    { data: documentsData }
+  ] = await Promise.all([
+    supabase.from('teacher_attendance').select('*').eq('teacher_id', id).order('date', { ascending: false }),
+    supabase.from('teacher_evaluations').select('*').eq('teacher_id', id).order('evaluation_date', { ascending: false }),
+    supabase.from('teacher_salary_records').select('*').eq('teacher_id', id).order('month', { ascending: false }),
+    supabase.from('teacher_documents').select('*').eq('teacher_id', id)
+  ]);
+
   // Format and augment the data with UI-specific mocked stats 
-  // (Since classes, reviews, and schedules are not implemented in the DB yet)
   const formattedTeacher = {
     id: t.id,
     code: t.code,
@@ -44,6 +56,30 @@ export default async function TeacherDetailPage({ params }: Props) {
     avatarInitials: t.avatar_initials,
     avatarColor: t.avatar_color,
     
+    // New fields according to requirements
+    dob: t.dob || '',
+    cccd: t.cccd || '',
+    address: t.address || '',
+    gender: t.gender || '',
+    startDate: t.start_date || '',
+    major: t.major || '',
+    englishLevel: t.english_level || '',
+    certificate_details: t.certificate_details || [],
+    fixedSchedule: t.fixed_schedule || [],
+    maxHoursPerWeek: t.max_hours_per_week || 40,
+    fixedDaysOff: t.fixed_days_off || [],
+    canTeachOnline: t.can_teach_online || false,
+    canTeachWeekend: t.can_teach_weekend || false,
+    salaryType: t.salary_type || 'Theo giờ',
+    baseSalary: t.base_salary || 0,
+    allowances: t.allowances || {},
+
+    // Related tables data
+    attendance: attendanceData || [],
+    evaluations: evaluationsData || [],
+    salaryRecords: salaryData || [],
+    documents: documentsData || [],
+    
     // Mocked fields for UI completeness
     location: 'Cơ sở Quận 1',
     scheduleNote: '',
@@ -51,7 +87,6 @@ export default async function TeacherDetailPage({ params }: Props) {
     studentRating: 4.8,
     reEnrollmentRate: 85,
     currentClasses: [
-      // Mock class data for the tabs
       {
         code: 'IEL-102',
         name: 'IELTS Intensive',

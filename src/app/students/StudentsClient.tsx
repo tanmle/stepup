@@ -195,6 +195,9 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
                   <input type="checkbox" className="rounded border-outline-variant" />
                 </th>
                 <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
+                  Mã HV
+                </th>
+                <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
                   Họ và tên
                 </th>
                 <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
@@ -227,18 +230,20 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
                     />
                   </td>
                   <td className="px-md py-md">
+                    <span className="font-mono text-label-sm text-primary bg-primary/5 px-sm py-xs rounded-md">
+                      {student.code}
+                    </span>
+                  </td>
+                  <td className="px-md py-md">
                     <Link href={`/students/${student.id}`} className="flex items-center gap-sm hover:text-primary transition-colors">
                       <div
                         className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 ${student.avatarColor}`}
                       >
                         {student.avatarInitials}
                       </div>
-                      <div>
-                        <p className="text-body-md font-medium text-on-background group-hover:text-primary transition-colors">
-                          {student.fullName}
-                        </p>
-                        <p className="text-label-sm text-on-surface-variant font-mono">{student.code}</p>
-                      </div>
+                      <p className="text-body-md font-medium text-on-background group-hover:text-primary transition-colors">
+                        {student.fullName}
+                      </p>
                     </Link>
                   </td>
                   <td className="px-md py-md text-body-md text-on-surface-variant">{student.dateOfBirth}</td>

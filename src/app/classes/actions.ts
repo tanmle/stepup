@@ -9,6 +9,7 @@ export async function addClass(formData: FormData) {
   const code = formData.get('code') as string;
   const name = formData.get('name') as string;
   const program = formData.get('program') as string;
+  const level = formData.get('level') as string;
   const teacherId = formData.get('teacherId') as string;
   const capacity = parseInt(formData.get('capacity') as string || '15', 10);
   const schedule = formData.get('schedule') as string;
@@ -22,6 +23,7 @@ export async function addClass(formData: FormData) {
       code,
       name,
       program,
+      level,
       teacher_id: teacherId || null,
       capacity,
       schedule,

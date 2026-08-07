@@ -8,8 +8,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import Pagination from '@/components/ui/Pagination';
 
 const ITEMS_PER_PAGE = 10;
-const STATUS_FILTERS = ['Tất cả', 'Nhận lớp', 'Kín lịch', 'Nghỉ phép'];
-
+const STATUS_FILTERS = ['Tất cả', 'Đang làm việc', 'Nghỉ phép', 'Nghỉ thai sản', 'Đã nghỉ việc'];
 const TEACHER_KPIS = [
   { label: 'Tổng giáo viên', value: '45', sub: '+2 tháng này', icon: 'co_present', color: 'text-primary' },
   { label: 'Giáo viên IELTS', value: '28', sub: '62% tổng số', icon: 'school', color: 'text-primary' },

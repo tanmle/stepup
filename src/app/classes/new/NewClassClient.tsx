@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { addClass } from '../actions';
+import { COURSE_OPTIONS } from '@/lib/constants';
 
 interface NewClassClientProps {
   teachers: { id: string; full_name: string; code: string }[];
@@ -16,6 +17,7 @@ export default function NewClassClient({ teachers }: NewClassClientProps) {
     code: '',
     name: '',
     program: '',
+    level: '',
     teacherId: '',
     capacity: '15',
     scheduleDays: [] as string[],
@@ -98,21 +100,43 @@ export default function NewClassClient({ teachers }: NewClassClientProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <div>
             <label className="text-label-sm text-on-surface-variant mb-xs block">
-              Chương trình học <span className="text-error">*</span>
+              Chương trình <span className="text-error">*</span>
             </label>
             <select
               required
               value={form.program}
-              onChange={(e) => handleChange('program', e.target.value)}
+              onChange={(e) => {
+                handleChange('program', e.target.value);
+                handleChange('level', '');
+              }}
               className="input-field w-full"
             >
               <option value="">-- Chọn chương trình --</option>
-              <option value="IELTS">Luyện thi IELTS</option>
-              <option value="TOEIC">Luyện thi TOEIC</option>
-              <option value="Giao tiếp">Tiếng Anh Giao tiếp</option>
-              <option value="Thiếu nhi">Tiếng Anh Thiếu nhi</option>
+              {COURSE_OPTIONS.map((opt) => (
+                <option key={opt.category} value={opt.category}>{opt.category}</option>
+              ))}
             </select>
           </div>
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Cấp độ <span className="text-error">*</span>
+            </label>
+            <select
+              required
+              value={form.level}
+              onChange={(e) => handleChange('level', e.target.value)}
+              className="input-field w-full"
+              disabled={!form.program}
+            >
+              <option value="">-- Chọn cấp độ --</option>
+              {form.program && COURSE_OPTIONS.find(o => o.category === form.program)?.levels.map(l => (
+                <option key={l} value={l}>{l}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <div>
             <label className="text-label-sm text-on-surface-variant mb-xs block">
               Giáo viên phụ trách
@@ -130,9 +154,6 @@ export default function NewClassClient({ teachers }: NewClassClientProps) {
               ))}
             </select>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <div>
             <label className="text-label-sm text-on-surface-variant mb-xs block">
               Sĩ số tối đa
@@ -145,6 +166,9 @@ export default function NewClassClient({ teachers }: NewClassClientProps) {
               className="input-field w-full"
             />
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-md">
           <div>
             <label className="text-label-sm text-on-surface-variant mb-xs block">
               Ngày học trong tuần
@@ -235,7 +259,7 @@ export default function NewClassClient({ teachers }: NewClassClientProps) {
           </Link>
           <button
             type="submit"
-            disabled={isPending || !form.code || !form.name || !form.program || !form.startDate || !form.startTime || !form.endTime}
+            disabled={isPending || !form.code || !form.name || !form.program || !form.level || !form.startDate || !form.startTime || !form.endTime}
             className="btn-primary"
           >
             {isPending ? (

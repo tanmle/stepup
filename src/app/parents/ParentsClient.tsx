@@ -14,6 +14,8 @@ interface ParentsClientProps {
 
 export default function ParentsClient({ initialParents }: ParentsClientProps) {
   const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterSource, setFilterSource] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -41,11 +43,15 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
 
   const filtered = useMemo(() => {
     return parentsList.filter((p: any) => {
-      return !search ||
+      const matchSearch = !search ||
         p.fullName.toLowerCase().includes(search.toLowerCase()) ||
         p.phone.includes(search);
+      const matchStatus = !filterStatus || p.crmStatus === filterStatus;
+      const matchSource = !filterSource || p.source === filterSource;
+      
+      return matchSearch && matchStatus && matchSource;
     });
-  }, [parentsList, search]);
+  }, [parentsList, search, filterStatus, filterSource]);
 
   const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
@@ -70,20 +76,44 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
 
       {/* Filters */}
       <div className="card p-sm flex flex-col md:flex-row gap-sm items-center justify-between">
-        <div className="relative w-full md:w-96 flex-shrink-0">
-          <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">
-            search
-          </span>
-          <input
-            type="text"
-            placeholder="Tìm theo tên, số điện thoại..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full pl-xl pr-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface placeholder:text-on-surface-variant/60"
-          />
+        <div className="flex flex-col md:flex-row gap-sm w-full">
+          <div className="relative w-full md:w-96 flex-shrink-0">
+            <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">
+              search
+            </span>
+            <input
+              type="text"
+              placeholder="Tìm theo tên, số điện thoại..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-xl pr-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface placeholder:text-on-surface-variant/60"
+            />
+          </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+            className="px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface"
+          >
+            <option value="">Trạng thái (Tất cả)</option>
+            <option value="Tiềm năng">Tiềm năng</option>
+            <option value="Đang học">Đang học</option>
+            <option value="Đã nghỉ">Đã nghỉ</option>
+            <option value="Khách VIP">Khách VIP</option>
+          </select>
+          <select
+            value={filterSource}
+            onChange={(e) => { setFilterSource(e.target.value); setCurrentPage(1); }}
+            className="px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface"
+          >
+            <option value="">Nguồn (Tất cả)</option>
+            <option value="Facebook">Facebook</option>
+            <option value="Bạn bè">Bạn bè giới thiệu</option>
+            <option value="Tờ rơi">Tờ rơi / Banner</option>
+            <option value="Khác">Khác</option>
+          </select>
         </div>
       </div>
 
@@ -94,7 +124,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
           <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-outline-variant/20 bg-surface-container-low/50">
-                {['Họ và tên', 'Liên hệ', 'Nghề nghiệp', 'Học viên liên kết', ''].map((h) => (
+                {['Họ và tên', 'Liên hệ', 'Nghề nghiệp', 'Trạng thái', 'Học viên liên kết', ''].map((h) => (
                   <th key={h} className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
                     {h}
                   </th>
@@ -122,6 +152,18 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                     {p.job || '—'}
                   </td>
                   <td className="px-md py-md">
+                    {p.crmStatus === 'Khách VIP' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-tertiary-container text-on-tertiary-container text-label-sm font-medium">
+                        <span className="material-symbols-outlined text-[14px]">stars</span>
+                        VIP
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-surface-container-highest text-on-surface text-label-sm font-medium">
+                        {p.crmStatus || 'Tiềm năng'}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-md py-md">
                     <div className="flex items-center gap-xs">
                       <span className="material-symbols-outlined text-[16px] text-primary">school</span>
                       <span className="text-body-md font-semibold text-primary">{p.linkedStudentsCount}</span>
@@ -147,7 +189,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
               ))}
               {paginated.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="text-center py-xl text-on-surface-variant">Không tìm thấy phụ huynh nào</td>
+                  <td colSpan={6} className="text-center py-xl text-on-surface-variant">Không tìm thấy phụ huynh nào</td>
                 </tr>
               )}
             </tbody>

@@ -16,9 +16,19 @@ export default function EditTeacherClient({ teacher }: EditTeacherClientProps) {
     fullName: teacher.fullName || '',
     email: teacher.email || '',
     phone: teacher.phone || '',
+    dateOfBirth: teacher.dateOfBirth || '',
+    idCard: teacher.idCard || '',
+    address: teacher.address || '',
+    gender: teacher.gender || '',
+    startDate: teacher.startDate || '',
+    status: teacher.status || 'Đang làm việc',
     degree: teacher.degree || '',
     institution: teacher.institution || '',
     yearsOfExperience: teacher.yearsOfExperience?.toString() || '0',
+    major: teacher.major || '',
+    englishLevel: teacher.englishLevel || '',
+    salaryType: teacher.salaryType || '',
+    salaryRate: teacher.salaryRate?.toString() || '',
     certificates: teacher.certificates?.join(', ') || '',
     specializations: teacher.specializations?.join(', ') || '',
   });
@@ -106,6 +116,89 @@ export default function EditTeacherClient({ teacher }: EditTeacherClientProps) {
               className="input-field w-full"
             />
           </div>
+
+          <div className="grid grid-cols-2 gap-sm">
+            <div>
+              <label className="text-label-sm text-on-surface-variant mb-xs block">
+                Ngày sinh
+              </label>
+              <input
+                type="date"
+                value={form.dateOfBirth}
+                onChange={(e) => handleChange('dateOfBirth', e.target.value)}
+                className="input-field w-full"
+              />
+            </div>
+            <div>
+              <label className="text-label-sm text-on-surface-variant mb-xs block">
+                Giới tính
+              </label>
+              <select
+                value={form.gender}
+                onChange={(e) => handleChange('gender', e.target.value)}
+                className="input-field w-full"
+              >
+                <option value="">-- Chọn --</option>
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+                <option value="Khác">Khác</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              CCCD/CMND
+            </label>
+            <input
+              value={form.idCard}
+              onChange={(e) => handleChange('idCard', e.target.value)}
+              placeholder="001234567890"
+              className="input-field w-full"
+            />
+          </div>
+
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Địa chỉ
+            </label>
+            <input
+              value={form.address}
+              onChange={(e) => handleChange('address', e.target.value)}
+              placeholder="123 Đường A, Quận B..."
+              className="input-field w-full"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-sm">
+            <div>
+              <label className="text-label-sm text-on-surface-variant mb-xs block">
+                Ngày bắt đầu làm việc
+              </label>
+              <input
+                type="date"
+                value={form.startDate}
+                onChange={(e) => handleChange('startDate', e.target.value)}
+                className="input-field w-full"
+              />
+            </div>
+            <div>
+              <label className="text-label-sm text-on-surface-variant mb-xs block">
+                Trạng thái <span className="text-error">*</span>
+              </label>
+              <select
+                required
+                value={form.status}
+                onChange={(e) => handleChange('status', e.target.value)}
+                className="input-field w-full"
+              >
+                <option value="Đang làm việc">Đang làm việc</option>
+                <option value="Nghỉ phép">Nghỉ phép</option>
+                <option value="Nghỉ thai sản">Nghỉ thai sản</option>
+                <option value="Đã nghỉ việc">Đã nghỉ việc</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* Right Column - Qualifications */}
@@ -158,6 +251,30 @@ export default function EditTeacherClient({ teacher }: EditTeacherClientProps) {
 
           <div>
             <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Chuyên ngành
+            </label>
+            <input
+              value={form.major}
+              onChange={(e) => handleChange('major', e.target.value)}
+              placeholder="Sư phạm Anh, Ngôn ngữ Anh..."
+              className="input-field w-full"
+            />
+          </div>
+
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Trình độ Tiếng Anh
+            </label>
+            <input
+              value={form.englishLevel}
+              onChange={(e) => handleChange('englishLevel', e.target.value)}
+              placeholder="IELTS 7.0, C1, TOEIC 900..."
+              className="input-field w-full"
+            />
+          </div>
+
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
               Chứng chỉ (Ngăn cách bằng dấu phẩy)
             </label>
             <input
@@ -178,6 +295,43 @@ export default function EditTeacherClient({ teacher }: EditTeacherClientProps) {
               placeholder="Luyện thi IELTS, Giao tiếp..."
               className="input-field w-full"
             />
+          </div>
+        </div>
+
+        {/* Full Width - Salary Info */}
+        <div className="card p-lg space-y-md col-span-1 lg:col-span-2">
+          <h2 className="text-title-md font-semibold text-on-background flex items-center gap-2 border-b border-outline-variant/20 pb-sm">
+            <span className="material-symbols-outlined text-primary">payments</span>
+            Thông tin lương
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
+            <div>
+              <label className="text-label-sm text-on-surface-variant mb-xs block">
+                Hình thức lương
+              </label>
+              <select
+                value={form.salaryType}
+                onChange={(e) => handleChange('salaryType', e.target.value)}
+                className="input-field w-full"
+              >
+                <option value="">-- Chọn hình thức --</option>
+                <option value="hourly">Theo giờ</option>
+                <option value="fixed">Lương cố định</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-label-sm text-on-surface-variant mb-xs block">
+                Mức lương
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={form.salaryRate}
+                onChange={(e) => handleChange('salaryRate', e.target.value)}
+                placeholder="Ví dụ: 150000"
+                className="input-field w-full"
+              />
+            </div>
           </div>
         </div>
 

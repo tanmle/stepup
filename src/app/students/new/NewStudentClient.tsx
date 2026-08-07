@@ -4,45 +4,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { addStudent } from '../actions';
-
-const STEPS = [
-  { id: 1, label: 'Thông tin cá nhân', icon: 'person' },
-  { id: 2, label: 'Thông tin phụ huynh', icon: 'family_restroom' },
-  { id: 3, label: 'Đăng ký khóa học', icon: 'class' },
-  { id: 4, label: 'Xác nhận', icon: 'check_circle' },
-];
-
-const COURSE_OPTIONS = [
-  {
-    category: 'Tiếng Anh Mầm non',
-    icon: 'child_care',
-    levels: ['Little Step', 'Middle Step', 'Big Step'],
-  },
-  {
-    category: 'Tiếng Anh Tiểu học',
-    icon: 'school',
-    levels: ['Starters', 'Movers', 'Flyers'],
-  },
-  {
-    category: 'Tiếng Anh Trung học',
-    icon: 'menu_book',
-    levels: ['Foundation', 'Advanced'],
-  },
-  {
-    category: 'Luyện thi IELTS',
-    icon: 'workspace_premium',
-    levels: ['Band 4-5.5'],
-  },
-];
-
-const REGISTRATION_TYPES = [
-  { value: 'monthly', label: 'Theo tháng', icon: 'calendar_month', desc: '1 tháng' },
-  { value: '3months', label: '3 tháng', icon: 'date_range', desc: 'Tiết kiệm 5%' },
-  { value: '6months', label: '6 tháng', icon: 'event_note', desc: 'Tiết kiệm 10%' },
-  { value: 'full', label: 'Full khóa', icon: 'star', desc: 'Tiết kiệm 15%' },
-];
-
-
+import { COURSE_OPTIONS, REGISTRATION_TYPES } from '@/lib/constants';
 
 interface NewStudentClientProps {
   parents: any[];
@@ -57,7 +19,18 @@ export default function NewStudentClient({ parents, classes }: NewStudentClientP
     courseId: '', classId: '', parentId: '', registrationType: '', totalSessions: '',
   });
 
+  const STEPS = [
+    { id: 1, label: 'Thông tin cá nhân', icon: 'person' },
+    { id: 2, label: 'Thông tin phụ huynh', icon: 'family_restroom' },
+    { id: 3, label: 'Đăng ký khóa học', icon: 'class' },
+    { id: 4, label: 'Xác nhận', icon: 'check_circle' },
+  ];
+
   const selectedClass = classes.find((c) => c.id === form.classId);
+
+  // Extract program from selected courseId (format "Category - Level")
+  const selectedProgram = form.courseId ? form.courseId.split(' - ')[0] : '';
+  const filteredClasses = selectedProgram ? classes.filter(c => c.program === selectedProgram) : [];
 
   const handleChange = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -79,6 +52,7 @@ export default function NewStudentClient({ parents, classes }: NewStudentClientP
     formData.append('parentRelationship', form.parentRelationship);
     formData.append('parentPhone', form.parentPhone);
     formData.append('courseId', form.courseId);
+    if (form.classId) formData.append('classId', form.classId);
     if (form.parentId) formData.append('parentId', form.parentId);
     // Note: In reality, classes table should have these IDs. We are mocking the classId for now.
     
@@ -333,6 +307,48 @@ export default function NewStudentClient({ parents, classes }: NewStudentClientP
               ))}
             </div>
 
+            {/* Mục Chọn lớp học */}
+            {form.courseId && (
+              <div className="mb-xl animate-fade-in">
+                <h2 className="text-title-lg text-on-background mb-md">Chọn lớp học</h2>
+                <p className="text-body-md text-on-surface-variant mb-md">Chọn lớp thuộc chương trình {selectedProgram}</p>
+                {filteredClasses.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
+                    {filteredClasses.map((cls) => {
+                      const isSelected = form.classId === cls.id;
+                      return (
+                        <button
+                          key={cls.id}
+                          type="button"
+                          onClick={() => handleChange('classId', cls.id)}
+                          className={`text-left p-md rounded-xl border-2 transition-all duration-200 ${
+                            isSelected
+                              ? 'border-primary bg-primary/5 shadow-sm'
+                              : 'border-outline-variant/30 hover:border-primary/30 hover:bg-surface-container-low'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-xs">
+                            <p className="text-body-md font-semibold text-on-background">{cls.name}</p>
+                            {isSelected && (
+                              <span className="material-symbols-outlined text-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                check_circle
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-label-sm text-on-surface-variant">Mã lớp: {cls.code}</p>
+                          {cls.capacity && <p className="text-label-sm text-on-surface-variant">Sĩ số: {cls.capacity}</p>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-body-md text-on-surface-variant italic p-md bg-surface-container-low rounded-xl">
+                    Chưa có lớp nào đang mở cho chương trình này.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Mục 2: Hình thức đăng ký */}
             <h2 className="text-title-lg text-on-background mb-md">Hình thức đăng ký</h2>
             <p className="text-body-md text-on-surface-variant mb-md">Chọn hình thức đóng học phí</p>
@@ -410,6 +426,9 @@ export default function NewStudentClient({ parents, classes }: NewStudentClientP
                 { label: 'Giới tính', value: form.gender || '(chưa điền)' },
                 { label: 'Phụ huynh', value: form.parentName || '(chưa điền)' },
                 { label: 'Khóa học', value: form.courseId || '(chưa chọn)' },
+                { label: 'Lớp học', value: selectedClass ? `${selectedClass.name} (${selectedClass.code})` : '(chưa chọn)' },
+                { label: 'Ngày bắt đầu', value: selectedClass?.start_date ? new Date(selectedClass.start_date).toLocaleDateString('vi-VN') : '(chưa có)' },
+                { label: 'Ngày kết thúc', value: selectedClass?.end_date ? new Date(selectedClass.end_date).toLocaleDateString('vi-VN') : '(chưa có)' },
                 { label: 'Hình thức', value: REGISTRATION_TYPES.find(t => t.value === form.registrationType)?.label || '(chưa chọn)' },
                 { label: 'Số buổi học', value: form.totalSessions || '(chưa điền)' },
               ].map((item) => (

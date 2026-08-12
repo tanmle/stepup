@@ -111,11 +111,18 @@ export default async function StudentDetailPage({ params }: Props) {
   };
 
   // Fetch available classes for new enrollment
-  const { data: availableClasses } = await supabase
+  const { data: classesData } = await supabase
     .from('classes')
-    .select('id, name, code, price')
+    .select('id, name, code, courses(tuition_fee)')
     .in('status', ['Sắp mở', 'Đang học'])
     .order('created_at', { ascending: false });
+
+  const availableClasses = classesData?.map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    code: c.code,
+    price: c.courses?.tuition_fee || null
+  })) || [];
 
   return <StudentDetailClient student={formattedStudent} availableClasses={availableClasses || []} />;
 }

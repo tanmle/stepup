@@ -3,6 +3,12 @@
 
 @import "tailwindcss";
 
+@media print {
+  body > *:not(#print-root) {
+    display: none !important;
+  }
+}
+
 /* ─── Tailwind v4 CSS-first theme ─────────────────────────────────────────── */
 @theme {
   /* Material Design 3 Color System — StepUp brand */

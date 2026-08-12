@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import TuitionClient from './TuitionClient';
 import { getTuitionData } from '@/lib/data/analytics';
+import { syncTuitionStatuses } from './actions';
 
 export const metadata = {
   title: 'Học phí & Công nợ',
@@ -8,6 +9,10 @@ export const metadata = {
 
 export default async function TuitionPage() {
   const supabase = await createClient();
+  
+  // Sync statuses based on due dates before fetching
+  await syncTuitionStatuses();
+
   const kpi = await getTuitionData();
 
   // For tuition, we need to join with students and classes to get the names

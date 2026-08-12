@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Pagination from '@/components/ui/Pagination';
+import { collectTuition } from './actions';
 
 const ITEMS_PER_PAGE = 10;
 const STATUS_FILTERS = ['Tất cả', 'Đã thu đủ', 'Sắp đến hạn', 'Quá hạn'];
@@ -21,6 +23,59 @@ export default function TuitionClient({ initialRecords, kpi }: TuitionClientProp
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('Tất cả');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isPending, startTransition] = useTransition();
+  
+  // Modal state
+  const [collectModalOpen, setCollectModalOpen] = useState(false);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
+  const [payAmount, setPayAmount] = useState('');
+  const [payMethod, setPayMethod] = useState('Chuyển khoản');
+  const [payNote, setPayNote] = useState('');
+
+  const openCollectModal = (record: any) => {
+    if (record.amountOwed <= 0) return;
+    setSelectedRecord(record);
+    setPayAmount(record.amountOwed.toString());
+    setPayMethod('Chuyển khoản');
+    setPayNote('');
+    setCollectModalOpen(true);
+  };
+
+  const openReceiptModal = (record: any) => {
+    setSelectedRecord(record);
+    setReceiptModalOpen(true);
+  };
+
+  const handleCollect = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRecord) return;
+    
+    const formData = new FormData();
+    formData.append('id', selectedRecord.id);
+    formData.append('amount', payAmount);
+    formData.append('method', payMethod);
+    formData.append('note', payNote);
+
+    startTransition(async () => {
+      try {
+        await collectTuition(formData);
+        setCollectModalOpen(false);
+        setReceiptModalOpen(true); // Open receipt after success
+      } catch (err: any) {
+        alert(err.message);
+      }
+    });
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const filtered = useMemo(() => {
     return initialRecords.filter((r) => {
@@ -183,7 +238,11 @@ export default function TuitionClient({ initialRecords, kpi }: TuitionClientProp
                 <span className="text-label-sm text-on-surface-variant">
                   Hạn nộp: <span className={record.status === 'Quá hạn' ? 'text-error font-medium' : ''}>{record.dueDate}</span>
                 </span>
-                <button className="text-primary font-label-sm flex items-center gap-1">
+                <button 
+                  className="text-primary font-label-sm flex items-center gap-1 disabled:opacity-50"
+                  onClick={() => openCollectModal(record)}
+                  disabled={record.amountOwed <= 0}
+                >
                   Thu tiền <span className="material-symbols-outlined text-[16px]">chevron_right</span>
                 </button>
               </div>
@@ -249,12 +308,15 @@ export default function TuitionClient({ initialRecords, kpi }: TuitionClientProp
                       <button
                         title="Xem biên lai"
                         className="p-xs text-on-surface-variant hover:bg-surface-container rounded-lg hover:text-primary transition-colors"
+                        onClick={() => openReceiptModal(record)}
                       >
                         <span className="material-symbols-outlined text-[18px]">receipt</span>
                       </button>
                       <button
                         title="Thu học phí"
-                        className="p-xs text-on-surface-variant hover:bg-surface-container rounded-lg hover:text-emerald-600 transition-colors"
+                        className="p-xs text-on-surface-variant hover:bg-surface-container rounded-lg hover:text-emerald-600 transition-colors disabled:opacity-50"
+                        onClick={() => openCollectModal(record)}
+                        disabled={record.amountOwed <= 0}
                       >
                         <span className="material-symbols-outlined text-[18px]">add_card</span>
                       </button>
@@ -280,6 +342,208 @@ export default function TuitionClient({ initialRecords, kpi }: TuitionClientProp
           itemLabel="học viên"
         />
       </div>
+
+      {/* Collect Modal */}
+      {collectModalOpen && selectedRecord && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-md bg-neutral-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-[95vw] max-w-[450px] flex flex-col max-h-[90vh] overflow-hidden text-gray-800">
+            <div className="p-md border-b flex justify-between items-center bg-gray-50 flex-shrink-0">
+              <h2 className="text-xl font-bold text-gray-800">Thu Học Phí</h2>
+              <button type="button" onClick={() => setCollectModalOpen(false)} className="text-gray-500 hover:text-gray-800 transition-colors">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleCollect} className="p-md flex flex-col gap-md">
+              <div>
+                <p className="text-label-sm text-on-surface-variant mb-1">Học viên</p>
+                <p className="text-body-lg font-medium">{selectedRecord.student.fullName}</p>
+                <p className="text-label-sm text-on-surface-variant">Lớp: {selectedRecord.className}</p>
+              </div>
+              
+              <div className="bg-primary/5 p-sm rounded-lg flex justify-between">
+                <span className="text-on-surface-variant">Còn nợ:</span>
+                <span className="font-bold text-primary">{selectedRecord.amountOwed.toLocaleString('vi-VN')}đ</span>
+              </div>
+
+              <div>
+                <label className="text-label-sm text-on-surface-variant mb-1 block">Số tiền thu</label>
+                <input 
+                  type="number" 
+                  className="input-field w-full"
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                  max={selectedRecord.amountOwed}
+                  min="1"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-label-sm text-on-surface-variant mb-1 block">Phương thức</label>
+                <select 
+                  className="input-field w-full"
+                  value={payMethod}
+                  onChange={(e) => setPayMethod(e.target.value)}
+                >
+                  <option value="Chuyển khoản">Chuyển khoản</option>
+                  <option value="Tiền mặt">Tiền mặt</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-label-sm text-on-surface-variant mb-1 block">Ghi chú</label>
+                <input 
+                  type="text" 
+                  className="input-field w-full"
+                  value={payNote}
+                  onChange={(e) => setPayNote(e.target.value)}
+                  placeholder="Nhập ghi chú (không bắt buộc)"
+                />
+              </div>
+
+              <div className="flex justify-end gap-sm mt-sm">
+                <button type="button" className="btn-secondary" onClick={() => setCollectModalOpen(false)}>
+                  Hủy
+                </button>
+                <button type="submit" className="btn-primary" disabled={isPending}>
+                  {isPending ? 'Đang xử lý...' : 'Xác nhận thu'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Receipt Modal */}
+      {receiptModalOpen && selectedRecord && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-md bg-neutral-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-[95vw] max-w-[450px] flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="p-md border-b flex justify-between items-center bg-gray-50 flex-shrink-0">
+              <h2 className="text-xl font-bold text-gray-800">Biên Lai Thu Tiền</h2>
+              <button onClick={() => setReceiptModalOpen(false)} className="text-gray-500 hover:text-gray-800 transition-colors">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="p-xl flex flex-col gap-md overflow-y-auto bg-white text-black flex-1 min-h-0">
+              <div className="text-center border-b border-dashed border-gray-300 pb-md mb-md">
+                <h1 className="text-2xl font-bold uppercase tracking-wider mb-2">StepUp English</h1>
+                <p className="text-sm text-gray-600">Hotline: 0987 654 321</p>
+                <p className="text-sm text-gray-600">Website: stepup.edu.vn</p>
+                <h2 className="text-xl font-bold mt-md uppercase">Biên Lai Thu Học Phí</h2>
+                <p className="text-xs text-gray-500 mt-1">Ngày in: {new Date().toLocaleDateString('vi-VN')} {new Date().toLocaleTimeString('vi-VN')}</p>
+              </div>
+
+              <div className="space-y-sm text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Học viên:</span>
+                  <span className="font-semibold uppercase">{selectedRecord.student.fullName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Mã HV:</span>
+                  <span>{selectedRecord.student.code || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Lớp học:</span>
+                  <span className="font-semibold">{selectedRecord.className}</span>
+                </div>
+              </div>
+
+              <div className="border-t border-b border-dashed border-gray-300 py-md my-xs space-y-sm text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Tổng học phí:</span>
+                  <span>{selectedRecord.totalTuition.toLocaleString('vi-VN')} đ</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Đã nộp:</span>
+                  <span>{selectedRecord.amountPaid.toLocaleString('vi-VN')} đ</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Khấu trừ/Giảm:</span>
+                  <span>0 đ</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center text-lg">
+                <span className="font-semibold">CÒN NỢ:</span>
+                <span className="font-bold text-red-600">{selectedRecord.amountOwed.toLocaleString('vi-VN')} đ</span>
+              </div>
+
+              <div className="mt-xl text-center text-sm text-gray-500 italic">
+                <p>Cảm ơn quý phụ huynh đã tin tưởng StepUp!</p>
+                <p>Biên lai có giá trị lưu hành nội bộ.</p>
+              </div>
+            </div>
+
+            <div className="p-md border-t border-outline-variant/20 flex justify-end gap-sm bg-surface-container-low print:hidden flex-shrink-0">
+              <button type="button" className="btn-secondary" onClick={() => setReceiptModalOpen(false)}>
+                Đóng
+              </button>
+              <button 
+                type="button" 
+                className="btn-primary" 
+                onClick={handlePrint}
+              >
+                <span className="material-symbols-outlined text-[18px]">print</span>
+                In Biên Lai
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden Print Container injected into body */}
+      {receiptModalOpen && selectedRecord && mounted && document.body && createPortal(
+        <div id="print-root" className="hidden print:block w-full bg-white text-black p-8 max-w-2xl mx-auto">
+          <div className="text-center border-b border-dashed border-gray-300 pb-md mb-md">
+            <h1 className="text-2xl font-bold uppercase tracking-wider mb-2">StepUp English</h1>
+            <p className="text-sm text-gray-600">Hotline: 0987 654 321</p>
+            <p className="text-sm text-gray-600">Website: stepup.edu.vn</p>
+            <h2 className="text-xl font-bold mt-md uppercase">Biên Lai Thu Học Phí</h2>
+            <p className="text-xs text-gray-500 mt-1">Ngày in: {new Date().toLocaleDateString('vi-VN')} {new Date().toLocaleTimeString('vi-VN')}</p>
+          </div>
+
+          <div className="space-y-sm text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Học viên:</span>
+              <span className="font-semibold uppercase">{selectedRecord.student.fullName}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Mã HV:</span>
+              <span>{selectedRecord.student.code || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Lớp học:</span>
+              <span className="font-semibold">{selectedRecord.className}</span>
+            </div>
+          </div>
+
+          <div className="border-t border-b border-dashed border-gray-300 py-md my-xs space-y-sm text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Tổng học phí:</span>
+              <span>{selectedRecord.totalTuition.toLocaleString('vi-VN')} đ</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Đã nộp:</span>
+              <span>{selectedRecord.amountPaid.toLocaleString('vi-VN')} đ</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Khấu trừ/Giảm:</span>
+              <span>0 đ</span>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center text-lg mt-md">
+            <span className="font-semibold">CÒN NỢ:</span>
+            <span className="font-bold text-red-600">{selectedRecord.amountOwed.toLocaleString('vi-VN')} đ</span>
+          </div>
+
+          <div className="mt-xl text-center text-sm text-gray-500 italic">
+            <p>Cảm ơn quý phụ huynh đã tin tưởng StepUp!</p>
+            <p>Biên lai có giá trị lưu hành nội bộ.</p>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

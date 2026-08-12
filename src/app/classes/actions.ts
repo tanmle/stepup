@@ -121,20 +121,26 @@ export async function enrollStudentInClass(studentId: string, classId: string) {
   }
 
   // Fetch class price and create tuition record
-  const { data: cls } = await supabase.from('classes').select('price').eq('id', classId).single();
+  const { data: cls } = await supabase.from('classes').select('course_id').eq('id', classId).single();
   
-  if (cls) {
-    await supabase.from('tuition_records').insert([
-      {
-        student_id: studentId,
-        class_id: classId,
-        total_tuition: cls.price || 0,
-        amount_paid: 0,
-        amount_owed: cls.price || 0,
-        status: 'Chưa đến hạn',
-      }
-    ]);
+  let tuition = 0;
+  if (cls?.course_id) {
+    const { data: course } = await supabase.from('courses').select('tuition_fee').eq('id', cls.course_id).single();
+    if (course) tuition = course.tuition_fee || 0;
   }
+
+  const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  await supabase.from('tuition_records').insert([
+    {
+      student_id: studentId,
+      class_id: classId,
+      total_tuition: tuition,
+      amount_paid: 0,
+      amount_owed: tuition,
+      status: 'Chưa đến hạn',
+      due_date: dueDate,
+    }
+  ]);
 
   revalidatePath(`/classes/${classId}`);
   revalidatePath('/classes');

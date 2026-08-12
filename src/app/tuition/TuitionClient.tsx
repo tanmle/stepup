@@ -72,6 +72,36 @@ export default function TuitionClient({ initialRecords, kpi }: TuitionClientProp
     window.print();
   };
 
+  const handleExportExcel = () => {
+    // Generate CSV content
+    const headers = ['Học viên', 'Mã HV', 'Lớp học', 'Tổng học phí', 'Đã nộp', 'Còn nợ', 'Hạn nộp', 'Trạng thái'];
+    
+    // We export the filtered records to match what the user is currently viewing
+    const rows = filtered.map(r => [
+      `"${r.student.fullName}"`,
+      `"${r.student.code || ''}"`,
+      `"${r.className}"`,
+      r.totalTuition,
+      r.amountPaid,
+      r.amountOwed,
+      `"${r.dueDate}"`,
+      `"${r.status}"`
+    ]);
+
+    // \uFEFF is the Byte Order Mark (BOM) to force Excel to read UTF-8 correctly
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + 
+      headers.join(",") + "\n" + 
+      rows.map(e => e.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Bao-cao-cong-no-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
@@ -137,13 +167,9 @@ export default function TuitionClient({ initialRecords, kpi }: TuitionClientProp
           <p className="text-body-md text-on-surface-variant mt-xs">Theo dõi và quản lý học phí học viên</p>
         </div>
         <div className="flex gap-sm">
-          <button className="btn-secondary">
+          <button className="btn-secondary" onClick={handleExportExcel}>
             <span className="material-symbols-outlined text-[16px]">table_view</span>
             Xuất Excel
-          </button>
-          <button className="btn-primary">
-            <span className="material-symbols-outlined text-[16px]">payments</span>
-            Thu học phí
           </button>
         </div>
       </div>

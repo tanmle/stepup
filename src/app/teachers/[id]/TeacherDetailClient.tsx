@@ -674,51 +674,10 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
               </div>
 
               <div>
-                <form onSubmit={handleAddSalary} className="bg-surface-container-low p-md rounded-xl space-y-md mb-lg">
-                  <h3 className="font-medium text-title-md">Tạo bảng lương</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-md">
-                    <div>
-                      <div className="flex items-center justify-between mb-xs">
-                        <label className="text-label-sm text-on-surface-variant">Tháng</label>
-                        <button type="button" onClick={calculateSalary} className="text-primary hover:bg-primary/10 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors" title="Tính lại tự động">
-                          <span className="material-symbols-outlined text-[14px] align-middle mr-0.5">refresh</span>
-                          Tự tính
-                        </button>
-                      </div>
-                      <input type="month" className="input-field w-full" value={salMonth} onChange={e => setSalMonth(e.target.value)} required />
-                    </div>
-                    <div>
-                      <label className="text-label-sm text-on-surface-variant block mb-xs">Tổng giờ</label>
-                      <input type="number" step="0.5" className="input-field w-full" value={salTotalHours} onChange={e => setSalTotalHours(e.target.value)} required />
-                    </div>
-                    <div>
-                      <label className="text-label-sm text-on-surface-variant block mb-xs">Lương cơ bản</label>
-                      <input type="number" className="input-field w-full" value={salBaseSalary} onChange={e => setSalBaseSalary(e.target.value)} required />
-                    </div>
-                    <div>
-                      <label className="text-label-sm text-on-surface-variant block mb-xs">Phụ cấp</label>
-                      <input type="number" className="input-field w-full" value={salAllowanceTotal} onChange={e => setSalAllowanceTotal(e.target.value)} required />
-                    </div>
-                    <div>
-                      <label className="text-label-sm text-on-surface-variant block mb-xs">Khấu trừ</label>
-                      <input type="number" className="input-field w-full" value={salDeductions} onChange={e => setSalDeductions(e.target.value)} required />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-title-sm">
-                      <span className="text-on-surface-variant">Thực nhận: </span>
-                      <span className="font-bold text-primary">
-                        {((Number(salBaseSalary) || 0) + (Number(salAllowanceTotal) || 0) - (Number(salDeductions) || 0)).toLocaleString()}đ
-                      </span>
-                    </div>
-                    <button type="submit" className="btn-primary" disabled={isPending}>
-                      <span className="material-symbols-outlined text-[18px]">add</span>
-                      {isPending ? 'Đang lưu...' : 'Thêm bảng lương'}
-                    </button>
-                  </div>
-                </form>
-                
-                <h3 className="text-title-md font-medium mb-md">Bảng lương theo tháng</h3>
+                <div className="flex items-center justify-between mb-md">
+                  <h3 className="text-title-md font-medium">Bảng lương theo tháng</h3>
+                  <span className="text-label-sm text-on-surface-variant bg-surface-container px-2 py-1 rounded-md">Chỉ xem (Vào menu Chấm công & Lương để tính lương mới)</span>
+                </div>
                 
                 <div className="border border-outline-variant/20 rounded-xl overflow-hidden overflow-x-auto">
                   <table className="w-full text-left min-w-[800px]">

@@ -16,9 +16,10 @@ const NAV_ITEMS = [
   { label: 'Lớp học', icon: 'class', href: '/classes' },
   { label: 'Khóa học', icon: 'library_books', href: '/courses' },
   { label: 'Lịch dạy', icon: 'calendar_month', href: '/schedule' },
-  { label: 'Chấm công & Điểm danh', icon: 'fact_check', href: '/attendance' },
+  { label: 'Điểm danh', icon: 'fact_check', href: '/attendance' },
+  { label: 'Chấm công & Lương', icon: 'payments', href: '/payroll' },
   { label: 'Phòng học', icon: 'meeting_room', href: '/rooms' },
-  { label: 'Học phí & Công nợ', icon: 'payments', href: '/tuition' },
+  { label: 'Học phí & Công nợ', icon: 'account_balance_wallet', href: '/tuition' },
   { label: 'Báo cáo tài chính', icon: 'analytics', href: '/reports' },
 ];
 

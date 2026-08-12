@@ -73,26 +73,77 @@ export async function getDashboardData() {
 
 export async function getReportsData() {
   const supabase = await createClient();
-  const { data: transactions } = await supabase.from('transactions').select('amount, type');
+  const { data: transactions } = await supabase.from('transactions').select('amount, type, created_at, description');
+  
   let totalRevenue = 0;
   let totalCost = 0;
+  
+  let currentMonthRevenue = 0;
+  let lastMonthRevenue = 0;
+  let currentMonthCost = 0;
+  let lastMonthCost = 0;
+
+  let tuitionRevenue = 0;
+  let otherRevenue = 0;
+
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
   if (transactions) {
     transactions.forEach(t => {
-      if (t.type === 'income') totalRevenue += t.amount || 0;
-      if (t.type === 'expense') totalCost += t.amount || 0;
+      if (!t.created_at) return;
+      const date = new Date(t.created_at);
+      const isCurrentYear = date.getFullYear() === currentYear;
+      const isCurrentMonth = date.getMonth() === currentMonth && isCurrentYear;
+      const isLastMonth = date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear;
+      const amount = t.amount || 0;
+
+      if (t.type === 'income') {
+        if (isCurrentYear) totalRevenue += amount;
+        if (isCurrentMonth) currentMonthRevenue += amount;
+        if (isLastMonth) lastMonthRevenue += amount;
+        
+        if (isCurrentYear) {
+          if (t.description?.toLowerCase().includes('thu học phí')) {
+            tuitionRevenue += amount;
+          } else {
+            otherRevenue += amount;
+          }
+        }
+      }
+      if (t.type === 'expense') {
+        if (isCurrentYear) totalCost += amount;
+        if (isCurrentMonth) currentMonthCost += amount;
+        if (isLastMonth) lastMonthCost += amount;
+      }
     });
   }
 
   const netProfit = totalRevenue - totalCost;
+  const currentMonthProfit = currentMonthRevenue - currentMonthCost;
+  const lastMonthProfit = lastMonthRevenue - lastMonthCost;
 
-  const { data: tuition } = await supabase.from('tuition_records').select('amount_owed');
+  const { data: tuition } = await supabase.from('tuition_records').select('total_tuition, amount_paid, amount_owed');
   let tuitionDebt = 0;
+  let totalTuitionExpected = 0;
+  let totalTuitionCollected = 0;
+
   if (tuition) {
     tuition.forEach(t => {
       tuitionDebt += t.amount_owed || 0;
+      totalTuitionExpected += t.total_tuition || 0;
+      totalTuitionCollected += t.amount_paid || 0;
     });
   }
+
+  const calcTrend = (curr: number, prev: number) => {
+    if (prev === 0) return curr > 0 ? '+100%' : '0%';
+    const diff = ((curr - prev) / prev) * 100;
+    return `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%`;
+  };
 
   const chartData = await getChartData();
 
@@ -101,6 +152,24 @@ export async function getReportsData() {
     totalCost, 
     netProfit, 
     tuitionDebt,
+    trends: {
+      revenueTrend: calcTrend(currentMonthRevenue, lastMonthRevenue),
+      revenueTrendUp: currentMonthRevenue >= lastMonthRevenue,
+      costTrend: calcTrend(currentMonthCost, lastMonthCost),
+      costTrendUp: currentMonthCost >= lastMonthCost,
+      profitTrend: calcTrend(currentMonthProfit, lastMonthProfit),
+      profitTrendUp: currentMonthProfit >= lastMonthProfit,
+    },
+    collectionData: {
+      expected: totalTuitionExpected,
+      collected: totalTuitionCollected,
+      uncollected: tuitionDebt,
+      percentage: totalTuitionExpected > 0 ? Math.round((totalTuitionCollected / totalTuitionExpected) * 100) : 0,
+    },
+    revenueCategories: [
+      { name: 'Học phí', value: totalRevenue > 0 ? Math.round((tuitionRevenue / totalRevenue) * 100) : 0, amount: tuitionRevenue },
+      { name: 'Khác', value: totalRevenue > 0 ? Math.round((otherRevenue / totalRevenue) * 100) : 0, amount: otherRevenue }
+    ],
     monthlyRevenue: chartData.monthlyRevenue,
     monthlyStudents: chartData.monthlyStudents
   };

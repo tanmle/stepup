@@ -3,7 +3,6 @@
 import CollectionGauge from '@/components/charts/CollectionGauge';
 import CategoryBreakdown from '@/components/charts/CategoryBreakdown';
 import ReportsRevenueChart from '@/components/charts/ReportsRevenueChart';
-import { REPORT_KPIS, REVENUE_CATEGORIES } from '@/lib/data/dashboard';
 
 interface ReportsClientProps {
   data: {
@@ -11,6 +10,21 @@ interface ReportsClientProps {
     totalCost: number;
     netProfit: number;
     tuitionDebt: number;
+    trends: {
+      revenueTrend: string;
+      revenueTrendUp: boolean;
+      costTrend: string;
+      costTrendUp: boolean;
+      profitTrend: string;
+      profitTrendUp: boolean;
+    };
+    collectionData: {
+      expected: number;
+      collected: number;
+      uncollected: number;
+      percentage: number;
+    };
+    revenueCategories: { name: string; value: number; amount: number; }[];
     monthlyRevenue: any[];
   };
 }
@@ -20,39 +34,36 @@ export default function ReportsClient({ data }: ReportsClientProps) {
     {
       label: 'Tổng doanh thu',
       value: data.totalRevenue,
-      trend: REPORT_KPIS.totalRevenueTrend,
-      trendUp: REPORT_KPIS.totalRevenueTrendUp,
+      trend: data.trends.revenueTrend,
+      trendUp: data.trends.revenueTrendUp,
       icon: 'trending_up',
       color: 'text-primary',
     },
     {
       label: 'Tổng chi phí',
       value: data.totalCost,
-      trend: REPORT_KPIS.totalCostTrend,
-      trendUp: !REPORT_KPIS.totalCostTrendUp,
+      trend: data.trends.costTrend,
+      trendUp: !data.trends.costTrendUp, // Lower cost is better (green arrow up technically, but we keep UI logic)
       icon: 'trending_down',
       color: 'text-error',
     },
     {
       label: 'Lợi nhuận ròng',
       value: data.netProfit,
-      trend: REPORT_KPIS.netProfitTrend,
-      trendUp: REPORT_KPIS.netProfitTrendUp,
+      trend: data.trends.profitTrend,
+      trendUp: data.trends.profitTrendUp,
       icon: 'savings',
       color: 'text-emerald-600',
     },
     {
       label: 'Công nợ học phí',
       value: data.tuitionDebt,
-      trend: REPORT_KPIS.tuitionDebtTrend,
-      trendUp: REPORT_KPIS.tuitionDebtTrendUp,
+      trend: '', // We don't have month-over-month debt trend right now
+      trendUp: false,
       icon: 'money_off',
       color: 'text-amber-600',
     },
   ];
-
-  const collectedAmount = data.totalRevenue * 0.85;
-  const uncollectedAmount = data.totalRevenue * 0.15;
 
   return (
     <div className="flex flex-col gap-md pb-xl animate-fade-in">
@@ -95,16 +106,18 @@ export default function ReportsClient({ data }: ReportsClientProps) {
               <p className={`text-[22px] font-bold ${kpi.color} leading-tight`}>
                 {(kpi.value / 1_000_000).toLocaleString('vi-VN')}M <span className="text-body-md font-normal text-on-surface-variant">đ</span>
               </p>
-              <div className="flex items-center gap-xs mt-xs">
-                <span
-                  className={`material-symbols-outlined text-[13px] ${kpi.trendUp ? 'text-emerald-600' : 'text-error'}`}
-                >
-                  {kpi.trendUp ? 'trending_up' : 'trending_down'}
-                </span>
-                <span className={`text-label-sm font-semibold ${kpi.trendUp ? 'text-emerald-600' : 'text-error'}`}>
-                  {kpi.trend} so với năm trước
-                </span>
-              </div>
+              {kpi.trend && (
+                <div className="flex items-center gap-xs mt-xs">
+                  <span
+                    className={`material-symbols-outlined text-[13px] ${kpi.trendUp ? 'text-emerald-600' : 'text-error'}`}
+                  >
+                    {kpi.trendUp ? 'trending_up' : 'trending_down'}
+                  </span>
+                  <span className={`text-label-sm font-semibold ${kpi.trendUp ? 'text-emerald-600' : 'text-error'}`}>
+                    {kpi.trend} so với tháng trước
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -134,9 +147,9 @@ export default function ReportsClient({ data }: ReportsClientProps) {
             <p className="text-label-sm text-on-surface-variant mt-xs">Kỳ hiện tại</p>
           </div>
           <CollectionGauge
-            percentage={85}
-            collected={collectedAmount}
-            uncollected={uncollectedAmount}
+            percentage={data.collectionData.percentage}
+            collected={data.collectionData.collected}
+            uncollected={data.collectionData.uncollected}
           />
         </div>
       </div>
@@ -148,8 +161,10 @@ export default function ReportsClient({ data }: ReportsClientProps) {
             <h2 className="text-title-lg text-on-background">Cơ cấu doanh thu</h2>
             <p className="text-label-sm text-on-surface-variant mt-xs">Phân tích theo nguồn thu</p>
           </div>
-          <CategoryBreakdown data={REVENUE_CATEGORIES} />
-        </div>
+          <CategoryBreakdown 
+            title="Nguồn thu" 
+            data={data.revenueCategories} 
+          /></div>
 
         {/* Top metrics table */}
         <div className="card p-lg">

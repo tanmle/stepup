@@ -71,7 +71,8 @@ export async function generateSalaryRecord(
 
   // Fetch attendance for the month
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-  const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
 
   const { data: attendance, error: attError } = await supabase
     .from('teacher_attendance')

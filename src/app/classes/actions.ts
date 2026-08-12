@@ -120,6 +120,22 @@ export async function enrollStudentInClass(studentId: string, classId: string) {
     throw new Error('Không thể thêm học viên vào lớp');
   }
 
+  // Fetch class price and create tuition record
+  const { data: cls } = await supabase.from('classes').select('price').eq('id', classId).single();
+  
+  if (cls) {
+    await supabase.from('tuition_records').insert([
+      {
+        student_id: studentId,
+        class_id: classId,
+        total_tuition: cls.price || 0,
+        amount_paid: 0,
+        amount_owed: cls.price || 0,
+        status: 'Chưa đến hạn',
+      }
+    ]);
+  }
+
   revalidatePath(`/classes/${classId}`);
   revalidatePath('/classes');
   return { success: true };
@@ -131,7 +147,7 @@ export async function deleteClass(id: string) {
 
   const { error } = await supabase
     .from('classes')
-    .delete()
+    .update({ status: 'Đã kết thúc' })
     .eq('id', id);
 
   if (error) {

@@ -13,7 +13,7 @@ export async function addTeacherAttendance(formData: FormData) {
     check_out: formData.get('check_out'),
     hours_worked: formData.get('hours_worked'),
     type: formData.get('type') || 'Dạy học',
-    notes: formData.get('notes'),
+    note: formData.get('notes'),
   };
 
   const { error } = await supabase.from('teacher_attendance').insert([data]);

@@ -17,12 +17,10 @@ export async function addStudent(formData: FormData) {
   const address = formData.get('address') as string;
 
   // Generate initials for avatar
-  const initials = fullName
-    .split(' ')
-    .map((n) => n[0])
-    .slice(-2)
-    .join('')
-    .toUpperCase();
+  const nameParts = fullName ? fullName.trim().split(/\s+/) : [];
+  const initials = nameParts.length > 0 
+    ? (nameParts.length === 1 ? nameParts[0][0] : nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+    : 'HV';
 
   // Random color logic for avatar
   const colors = [
@@ -116,7 +114,7 @@ export async function addStudent(formData: FormData) {
           total_tuition: cls.price || 0,
           amount_paid: 0,
           amount_owed: cls.price || 0,
-          status: 'Chưa thu',
+          status: 'Chưa đến hạn',
         }
       ]);
     }
@@ -131,7 +129,7 @@ export async function deleteStudent(id: string) {
 
   const { error } = await supabase
     .from('students')
-    .delete()
+    .update({ status: 'Đã nghỉ' })
     .eq('id', id);
 
   if (error) {
@@ -173,7 +171,7 @@ export async function enrollStudent(studentId: string, classId: string) {
         total_tuition: cls.price || 0,
         amount_paid: 0,
         amount_owed: cls.price || 0,
-        status: 'Chưa thu',
+        status: 'Chưa đến hạn',
       }
     ]);
   }

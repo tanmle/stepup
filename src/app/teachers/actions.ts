@@ -84,7 +84,7 @@ export async function deleteTeacher(id: string) {
 
   const { error } = await supabase
     .from('teachers')
-    .delete()
+    .update({ status: 'Đã nghỉ việc' })
     .eq('id', id);
 
   if (error) {
@@ -166,6 +166,8 @@ export async function addTeacherAttendance(formData: FormData) {
     console.error('Error adding teacher attendance:', error);
     throw new Error('Failed to create attendance record');
   }
+  revalidatePath('/teachers');
+  if (data.teacher_id) revalidatePath(`/teachers/${data.teacher_id}`);
   return { success: true };
 }
 
@@ -173,11 +175,17 @@ export async function addTeacherEvaluation(formData: FormData) {
   const supabase = await createClient();
   const data = Object.fromEntries(formData.entries());
   
+  // Remove total_score as it is a GENERATED ALWAYS column in DB
+  delete data.total_score;
+  
   const { error } = await supabase.from('teacher_evaluations').insert([data]);
   if (error) {
     console.error('Error adding teacher evaluation:', error);
     throw new Error('Failed to create evaluation record');
   }
+  
+  revalidatePath('/teachers');
+  if (data.teacher_id) revalidatePath(`/teachers/${data.teacher_id}`);
   return { success: true };
 }
 
@@ -190,6 +198,8 @@ export async function addTeacherSalaryRecord(formData: FormData) {
     console.error('Error adding teacher salary record:', error);
     throw new Error('Failed to create salary record');
   }
+  revalidatePath('/teachers');
+  if (data.teacher_id) revalidatePath(`/teachers/${data.teacher_id}`);
   return { success: true };
 }
 
@@ -205,5 +215,6 @@ export async function deleteTeacherAttendance(id: string) {
     console.error('Error deleting teacher attendance:', error);
     throw new Error('Failed to delete attendance record');
   }
+  revalidatePath('/teachers');
   return { success: true };
 }

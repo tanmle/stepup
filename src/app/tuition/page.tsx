@@ -45,5 +45,11 @@ export default async function TuitionPage() {
     status: r.status,
   }));
 
-  return <TuitionClient initialRecords={formattedRecords} kpi={kpi} />;
+  // Fetch center settings for receipts
+  const { data: settings } = await supabase
+    .from('center_settings')
+    .select('*')
+    .single();
+
+  return <TuitionClient initialRecords={formattedRecords} kpi={kpi} settings={settings} />;
 }

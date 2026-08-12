@@ -162,9 +162,9 @@ export default function ReportsClient({ data }: ReportsClientProps) {
             <p className="text-label-sm text-on-surface-variant mt-xs">Phân tích theo nguồn thu</p>
           </div>
           <CategoryBreakdown 
-            title="Nguồn thu" 
             data={data.revenueCategories} 
-          /></div>
+          />
+        </div>
 
         {/* Top metrics table */}
         <div className="card p-lg">

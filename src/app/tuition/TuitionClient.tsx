@@ -17,9 +17,10 @@ interface TuitionClientProps {
     overdueDebt: number;
     upcomingDebt: number;
   };
+  settings?: any;
 }
 
-export default function TuitionClient({ initialRecords, kpi }: TuitionClientProps) {
+export default function TuitionClient({ initialRecords, kpi, settings }: TuitionClientProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('Tất cả');
   const [currentPage, setCurrentPage] = useState(1);
@@ -452,9 +453,10 @@ export default function TuitionClient({ initialRecords, kpi }: TuitionClientProp
             </div>
             <div className="p-xl flex flex-col gap-md overflow-y-auto bg-white text-black flex-1 min-h-0">
               <div className="text-center border-b border-dashed border-gray-300 pb-md mb-md">
-                <h1 className="text-2xl font-bold uppercase tracking-wider mb-2">StepUp English</h1>
-                <p className="text-sm text-gray-600">Hotline: 0987 654 321</p>
-                <p className="text-sm text-gray-600">Website: stepup.edu.vn</p>
+                <h1 className="text-2xl font-bold uppercase tracking-wider mb-2">{settings?.center_name || 'STEPUP ENGLISH'}</h1>
+                <p className="text-sm text-gray-600">Hotline: {settings?.phone || '0987 654 321'}</p>
+                <p className="text-sm text-gray-600">Website: {settings?.email || 'stepup.edu.vn'}</p>
+                <p className="text-sm text-gray-600 mb-1">{settings?.address || '123 Đường ABC, Quận X'}</p>
                 <h2 className="text-xl font-bold mt-md uppercase">Biên Lai Thu Học Phí</h2>
                 <p className="text-xs text-gray-500 mt-1">Ngày in: {new Date().toLocaleDateString('vi-VN')} {new Date().toLocaleTimeString('vi-VN')}</p>
               </div>
@@ -471,6 +473,24 @@ export default function TuitionClient({ initialRecords, kpi }: TuitionClientProp
                 <div className="flex justify-between">
                   <span className="text-gray-600">Lớp học:</span>
                   <span className="font-semibold">{selectedRecord.className}</span>
+                </div>
+              </div>
+
+              <div className="mt-md text-sm">
+                <p className="font-semibold text-gray-800 mb-xs">Thông tin chuyển khoản:</p>
+                <div className="bg-gray-50 p-sm rounded border border-gray-200 grid grid-cols-[1fr_auto] gap-md items-center" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                  <div className="space-y-1">
+                    <p><span className="text-gray-600">Ngân hàng:</span> <span className="font-medium">{settings?.bank_name || 'Vietcombank'}</span></p>
+                    <p><span className="text-gray-600">Số tài khoản:</span> <span className="font-medium text-primary">{settings?.bank_account || '1234567890'}</span></p>
+                    <p><span className="text-gray-600">Chủ tài khoản:</span> <span className="font-medium">{settings?.bank_owner || 'NGUYEN VAN A'}</span></p>
+                  </div>
+                  <div className="w-32 h-32 bg-white rounded-lg p-1 border border-gray-200 block">
+                    <img 
+                      src={`https://img.vietqr.io/image/${settings?.bank_name || 'vietcombank'}-${settings?.bank_account || '1234567890'}-compact2.png?${selectedRecord.amountOwed > 0 ? `amount=${selectedRecord.amountOwed}&` : ''}addInfo=${encodeURIComponent('Hoc phi ' + (selectedRecord.student.code || ''))}&accountName=${encodeURIComponent(settings?.bank_owner || 'NGUYEN VAN A')}`}
+                      alt="VietQR"
+                      className="w-full h-full object-contain block"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -495,8 +515,8 @@ export default function TuitionClient({ initialRecords, kpi }: TuitionClientProp
               </div>
 
               <div className="mt-xl text-center text-sm text-gray-500 italic">
-                <p>Cảm ơn quý phụ huynh đã tin tưởng StepUp!</p>
-                <p>Biên lai có giá trị lưu hành nội bộ.</p>
+                <p>{settings?.receipt_note || 'Học phí đã đóng không được hoàn trả dưới mọi hình thức.'}</p>
+                <p className="mt-1 font-semibold">Cảm ơn quý phụ huynh đã tin tưởng {settings?.center_name || 'chúng tôi'}!</p>
               </div>
             </div>
 
@@ -521,9 +541,10 @@ export default function TuitionClient({ initialRecords, kpi }: TuitionClientProp
       {receiptModalOpen && selectedRecord && mounted && document.body && createPortal(
         <div id="print-root" className="hidden print:block w-full bg-white text-black p-8 max-w-2xl mx-auto">
           <div className="text-center border-b border-dashed border-gray-300 pb-md mb-md">
-            <h1 className="text-2xl font-bold uppercase tracking-wider mb-2">StepUp English</h1>
-            <p className="text-sm text-gray-600">Hotline: 0987 654 321</p>
-            <p className="text-sm text-gray-600">Website: stepup.edu.vn</p>
+            <h1 className="text-2xl font-bold uppercase tracking-wider mb-2">{settings?.center_name || 'STEPUP ENGLISH'}</h1>
+            <p className="text-sm text-gray-600">Hotline: {settings?.phone || '0987 654 321'}</p>
+            <p className="text-sm text-gray-600">Website: {settings?.email || 'stepup.edu.vn'}</p>
+            <p className="text-sm text-gray-600 mb-1">{settings?.address || '123 Đường ABC, Quận X'}</p>
             <h2 className="text-xl font-bold mt-md uppercase">Biên Lai Thu Học Phí</h2>
             <p className="text-xs text-gray-500 mt-1">Ngày in: {new Date().toLocaleDateString('vi-VN')} {new Date().toLocaleTimeString('vi-VN')}</p>
           </div>
@@ -540,6 +561,24 @@ export default function TuitionClient({ initialRecords, kpi }: TuitionClientProp
             <div className="flex justify-between">
               <span className="text-gray-600">Lớp học:</span>
               <span className="font-semibold">{selectedRecord.className}</span>
+            </div>
+          </div>
+
+          <div className="mt-md text-sm">
+            <p className="font-semibold text-gray-800 mb-xs">Thông tin chuyển khoản:</p>
+            <div className="bg-gray-50 p-sm rounded border border-gray-200 grid grid-cols-[1fr_auto] gap-md items-center" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+              <div className="space-y-1">
+                <p><span className="text-gray-600">Ngân hàng:</span> <span className="font-medium">{settings?.bank_name || 'Vietcombank'}</span></p>
+                <p><span className="text-gray-600">Số tài khoản:</span> <span className="font-medium text-primary">{settings?.bank_account || '1234567890'}</span></p>
+                <p><span className="text-gray-600">Chủ tài khoản:</span> <span className="font-medium">{settings?.bank_owner || 'NGUYEN VAN A'}</span></p>
+              </div>
+              <div className="w-32 h-32 bg-white rounded-lg p-1 border border-gray-200 block">
+                <img 
+                  src={`https://img.vietqr.io/image/${settings?.bank_name || 'vietcombank'}-${settings?.bank_account || '1234567890'}-compact2.png?${selectedRecord.amountOwed > 0 ? `amount=${selectedRecord.amountOwed}&` : ''}addInfo=${encodeURIComponent('Hoc phi ' + (selectedRecord.student.code || ''))}&accountName=${encodeURIComponent(settings?.bank_owner || 'NGUYEN VAN A')}`}
+                  alt="VietQR"
+                  className="w-full h-full object-contain block"
+                />
+              </div>
             </div>
           </div>
 
@@ -564,8 +603,8 @@ export default function TuitionClient({ initialRecords, kpi }: TuitionClientProp
           </div>
 
           <div className="mt-xl text-center text-sm text-gray-500 italic">
-            <p>Cảm ơn quý phụ huynh đã tin tưởng StepUp!</p>
-            <p>Biên lai có giá trị lưu hành nội bộ.</p>
+            <p>{settings?.receipt_note || 'Học phí đã đóng không được hoàn trả dưới mọi hình thức.'}</p>
+            <p className="mt-1 font-semibold">Cảm ơn quý phụ huynh đã tin tưởng {settings?.center_name || 'chúng tôi'}!</p>
           </div>
         </div>,
         document.body

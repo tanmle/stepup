@@ -33,6 +33,7 @@ export default async function ClassesPage() {
     enrolled: c.enrollments ? (c.enrollments as any[]).filter((e: any) => e.status === 'Đang học').length : 0,
     schedule: c.schedule,
     startDate: c.start_date,
+    endDate: c.end_date,
     status: c.status,
     colorKey: c.color_key,
   }));

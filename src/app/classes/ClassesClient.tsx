@@ -126,7 +126,7 @@ export default function ClassesClient({ initialClasses }: ClassesClientProps) {
           <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-outline-variant/20 bg-surface-container-low/50">
-                {['Tên lớp', 'Giáo viên', 'Chương trình', 'Sĩ số', 'Lịch học', 'Ngày bắt đầu', 'Trạng thái', ''].map((h) => (
+                {['Tên lớp', 'Giáo viên', 'Chương trình', 'Sĩ số', 'Lịch học', 'Ngày bắt đầu', 'Ngày kết thúc', 'Trạng thái', ''].map((h) => (
                   <th key={h} className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
                     {h}
                   </th>
@@ -161,6 +161,7 @@ export default function ClassesClient({ initialClasses }: ClassesClientProps) {
                   </td>
                   <td className="px-md py-md text-body-md text-on-surface-variant">{c.schedule}</td>
                   <td className="px-md py-md text-body-md text-on-surface-variant">{c.startDate ? new Date(c.startDate).toLocaleDateString('vi-VN') : '—'}</td>
+                  <td className="px-md py-md text-body-md text-on-surface-variant">{c.endDate ? new Date(c.endDate).toLocaleDateString('vi-VN') : '—'}</td>
                   <td className="px-md py-md">
                     <StatusBadge status={c.status} />
                   </td>
@@ -186,7 +187,7 @@ export default function ClassesClient({ initialClasses }: ClassesClientProps) {
               ))}
               {paginated.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center py-xl text-on-surface-variant">Không tìm thấy lớp học nào</td>
+                  <td colSpan={9} className="text-center py-xl text-on-surface-variant">Không tìm thấy lớp học nào</td>
                 </tr>
               )}
             </tbody>

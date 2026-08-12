@@ -96,6 +96,8 @@ export default async function StudentDetailPage({ params }: Props) {
       sessionsTotal: e.sessions_total,
       attendanceRate: e.attendance_rate,
       status: e.status,
+      startDate: e.classes.start_date,
+      endDate: e.classes.end_date,
     })) : [],
     payments: tuitionHistory.map((t: any) => ({
       id: t.id,

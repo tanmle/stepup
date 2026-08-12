@@ -4,14 +4,15 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { addStudent } from '../actions';
-import { COURSE_OPTIONS, REGISTRATION_TYPES } from '@/lib/constants';
+import { REGISTRATION_TYPES } from '@/lib/constants';
 
 interface NewStudentClientProps {
   parents: any[];
   classes: any[];
+  courses: { id: string; name: string; program: string; level: string; tuition_fee: number; duration_months: number; sessions_count: number }[];
 }
 
-export default function NewStudentClient({ parents, classes }: NewStudentClientProps) {
+export default function NewStudentClient({ parents, classes, courses }: NewStudentClientProps) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     fullName: '', englishName: '', dateOfBirth: '', gender: '',
@@ -28,9 +29,28 @@ export default function NewStudentClient({ parents, classes }: NewStudentClientP
 
   const selectedClass = classes.find((c) => c.id === form.classId);
 
-  // Extract program from selected courseId (format "Category - Level")
-  const selectedProgram = form.courseId ? form.courseId.split(' - ')[0] : '';
-  const filteredClasses = selectedProgram ? classes.filter(c => c.program === selectedProgram) : [];
+  const selectedCourse = courses.find((c) => c.id === form.courseId);
+  const filteredClasses = selectedCourse 
+    ? classes.filter(c => c.program === selectedCourse.program) 
+    : [];
+    
+  // Group courses by program for display
+  const coursesByProgram = courses.reduce((acc, course) => {
+    if (!acc[course.program]) {
+      acc[course.program] = {
+        category: course.program,
+        icon: course.program.includes('Mầm non') ? 'child_care' : 
+              course.program.includes('Tiểu học') ? 'school' : 
+              course.program.includes('Trung học') ? 'menu_book' : 
+              course.program.includes('IELTS') ? 'workspace_premium' : 'class',
+        courses: []
+      };
+    }
+    acc[course.program].courses.push(course);
+    return acc;
+  }, {} as Record<string, any>);
+  
+  const groupedCoursesArray = Object.values(coursesByProgram);
 
   const handleChange = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -270,35 +290,35 @@ export default function NewStudentClient({ parents, classes }: NewStudentClientP
             <p className="text-body-md text-on-surface-variant mb-lg">Chọn chương trình và cấp độ phù hợp</p>
             
             <div className="space-y-lg mb-xl">
-              {COURSE_OPTIONS.map((program) => (
-                <div key={program.category}>
+              {groupedCoursesArray.map((programGroup: any) => (
+                <div key={programGroup.category}>
                   <h3 className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-sm flex items-center gap-xs">
-                    <span className="material-symbols-outlined text-[16px]">{program.icon}</span>
-                    {program.category}
+                    <span className="material-symbols-outlined text-[16px]">{programGroup.icon}</span>
+                    {programGroup.category}
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-sm">
-                    {program.levels.map((level) => {
-                      const val = `${program.category} - ${level}`;
-                      const isSelected = form.courseId === val;
+                    {programGroup.courses.map((course: any) => {
+                      const isSelected = form.courseId === course.id;
                       return (
                         <button
-                          key={val}
+                          key={course.id}
                           type="button"
-                          onClick={() => handleChange('courseId', val)}
+                          onClick={() => handleChange('courseId', course.id)}
                           className={`text-left p-md rounded-xl border-2 transition-all duration-200 ${
                             isSelected
                               ? 'border-primary bg-primary/5 shadow-sm'
                               : 'border-outline-variant/30 hover:border-primary/30 hover:bg-surface-container-low'
                           }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <p className="text-body-md font-semibold text-on-background">{level}</p>
+                          <div className="flex items-center justify-between mb-xs">
+                            <p className="text-body-md font-semibold text-on-background">{course.name}</p>
                             {isSelected && (
                               <span className="material-symbols-outlined text-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                                 check_circle
                               </span>
                             )}
                           </div>
+                          <p className="text-label-sm text-on-surface-variant">Học phí: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(course.tuition_fee)}</p>
                         </button>
                       );
                     })}
@@ -311,7 +331,7 @@ export default function NewStudentClient({ parents, classes }: NewStudentClientP
             {form.courseId && (
               <div className="mb-xl animate-fade-in">
                 <h2 className="text-title-lg text-on-background mb-md">Chọn lớp học</h2>
-                <p className="text-body-md text-on-surface-variant mb-md">Chọn lớp thuộc chương trình {selectedProgram}</p>
+                <p className="text-body-md text-on-surface-variant mb-md">Chọn lớp thuộc chương trình {selectedCourse?.program}</p>
                 {filteredClasses.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
                     {filteredClasses.map((cls) => {

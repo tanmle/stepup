@@ -14,9 +14,15 @@ export default async function NewClassPage() {
     .select('id, full_name, code')
     .order('full_name', { ascending: true });
 
+  const { data: courses, error: coursesError } = await supabase
+    .from('courses')
+    .select('id, name, program, level')
+    .eq('status', 'Đang hoạt động')
+    .order('name', { ascending: true });
+
   if (error) {
     console.error('Error fetching teachers for class creation:', error);
   }
 
-  return <NewClassClient teachers={teachers || []} />;
+  return <NewClassClient teachers={teachers || []} courses={courses || []} />;
 }

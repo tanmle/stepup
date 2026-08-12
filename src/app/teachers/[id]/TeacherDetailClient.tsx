@@ -555,6 +555,7 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
             <div className="animate-fade-in space-y-md">
               <div className="flex items-center justify-between mb-md">
                 <h3 className="font-medium text-title-md">Bảng chấm công</h3>
+                <span className="text-label-sm text-on-surface-variant bg-surface-container px-2 py-1 rounded-md">Chỉ xem (Vào menu Điểm danh & Chấm công để thao tác)</span>
                 <div className="flex items-center gap-2">
                   <input type="month" className="input-field py-1" value={calMonth} onChange={e => setCalMonth(e.target.value)} />
                 </div>
@@ -576,8 +577,7 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                     return (
                       <div 
                         key={idx} 
-                        onClick={() => { setAttDate(dayStr); setIsAttModalOpen(true); }}
-                        className="border-r border-b border-outline-variant/20 p-xs hover:bg-primary/[0.02] cursor-pointer group transition-colors relative flex flex-col"
+                        className="border-r border-b border-outline-variant/20 p-xs bg-surface-container-lowest transition-colors relative flex flex-col"
                       >
                         <div className="text-label-sm text-on-surface-variant group-hover:text-primary transition-colors mb-1">{dayNum}</div>
                         <div className="flex-1 flex flex-col gap-1 overflow-y-auto">

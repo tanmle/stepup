@@ -45,12 +45,20 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
     .eq('status', 'Sẵn sàng')
     .order('name');
 
+  // Fetch all students (for enrolling into class)
+  const { data: students } = await supabase
+    .from('students')
+    .select('id, full_name, code')
+    .eq('status', 'Đang học')
+    .order('full_name');
+
   return (
     <ClassDetailClient 
       cls={cls} 
       enrollments={enrollments || []} 
       sessions={sessions || []} 
       rooms={rooms || []}
+      students={students || []}
     />
   );
 }

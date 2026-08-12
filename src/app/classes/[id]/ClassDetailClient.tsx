@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { addClassSession, updateClassSession, deleteClassSession } from '../actions';
+import { addClassSession, updateClassSession, deleteClassSession, enrollStudentInClass } from '../actions';
 import StatusBadge from '@/components/ui/StatusBadge';
 
 interface ClassDetailClientProps {
@@ -11,11 +11,14 @@ interface ClassDetailClientProps {
   enrollments: any[];
   sessions: any[];
   rooms: any[];
+  students: any[];
 }
 
-export default function ClassDetailClient({ cls, enrollments, sessions, rooms }: ClassDetailClientProps) {
+export default function ClassDetailClient({ cls, enrollments, sessions, rooms, students }: ClassDetailClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'schedule'>('overview');
+  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState('');
   const [isPending, startTransition] = useTransition();
   const [editingSession, setEditingSession] = useState<any | null>(null);
 
@@ -61,6 +64,23 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms }:
     });
   };
 
+  const handleEnrollStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStudentId) return;
+
+    startTransition(async () => {
+      try {
+        await enrollStudentInClass(selectedStudentId, cls.id);
+        setIsEnrollModalOpen(false);
+        setSelectedStudentId('');
+        router.refresh();
+      } catch (error: any) {
+        console.error('Error enrolling student:', error);
+        alert(error.message || 'Thêm học viên thất bại.');
+      }
+    });
+  };
+
   return (
     <div className="flex flex-col gap-md pb-xl animate-fade-in">
       {/* Header */}
@@ -68,10 +88,16 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms }:
         <Link href="/classes" className="p-xs rounded-full hover:bg-surface-container transition-colors text-on-surface-variant">
           <span className="material-symbols-outlined text-[20px]">arrow_back</span>
         </Link>
-        <div>
-          <div className="flex items-center gap-sm">
-            <h1 className="text-headline-lg text-on-background">{cls.name}</h1>
-            <StatusBadge status={cls.status} />
+        <div className="flex-1">
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-sm">
+              <h1 className="text-headline-lg text-on-background">{cls.name}</h1>
+              <StatusBadge status={cls.status} />
+            </div>
+            <Link href={`/classes/${cls.id}/edit`} className="btn-secondary py-1.5 px-3 text-label-sm">
+              <span className="material-symbols-outlined text-[18px]">edit</span>
+              Chỉnh sửa
+            </Link>
           </div>
           <div className="flex items-center gap-md mt-xs text-body-md text-on-surface-variant">
             <span className="flex items-center gap-xs"><span className="material-symbols-outlined text-[16px]">tag</span>{cls.code}</span>
@@ -109,6 +135,13 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms }:
           <div className="card overflow-hidden">
             <div className="p-md border-b border-outline-variant/20 flex justify-between items-center">
               <h2 className="text-title-md text-on-background">Danh sách học viên ({enrollments.length}/{cls.capacity})</h2>
+              <button 
+                onClick={() => setIsEnrollModalOpen(true)}
+                className="btn-primary py-1.5 px-3 text-label-sm"
+              >
+                <span className="material-symbols-outlined text-[18px]">add</span>
+                Thêm học viên
+              </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -308,6 +341,44 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms }:
           </div>
         )}
       </div>
+
+      {/* Enroll Student Modal */}
+      {isEnrollModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-md bg-background/80 backdrop-blur-sm animate-fade-in">
+          <div className="card p-xl w-[500px] max-w-[90vw] shadow-elevation-3">
+            <div className="flex justify-between items-center mb-lg border-b border-outline-variant/20 pb-md">
+              <h2 className="text-title-lg font-semibold text-on-background">Thêm học viên vào lớp</h2>
+              <button onClick={() => setIsEnrollModalOpen(false)} className="text-on-surface-variant hover:text-on-surface">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleEnrollStudent} className="space-y-md">
+              <div>
+                <label className="text-label-sm text-on-surface-variant mb-xs block">Chọn học viên</label>
+                <select
+                  required
+                  value={selectedStudentId}
+                  onChange={(e) => setSelectedStudentId(e.target.value)}
+                  className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50"
+                >
+                  <option value="">-- Chọn học viên --</option>
+                  {students.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.full_name} ({student.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end gap-sm pt-md border-t border-outline-variant/20">
+                <button type="button" onClick={() => setIsEnrollModalOpen(false)} className="btn-secondary">Hủy</button>
+                <button type="submit" disabled={isPending || !selectedStudentId} className="btn-primary">
+                  {isPending ? 'Đang thêm...' : 'Thêm vào lớp'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,10 +10,12 @@ export async function addClass(formData: FormData) {
   const name = formData.get('name') as string;
   const program = formData.get('program') as string;
   const level = formData.get('level') as string;
+  const courseId = formData.get('courseId') as string;
   const teacherId = formData.get('teacherId') as string;
   const capacity = parseInt(formData.get('capacity') as string || '15', 10);
   const schedule = formData.get('schedule') as string;
   const startDate = formData.get('startDate') as string;
+  const status = formData.get('status') as string || 'Sắp mở';
   
   const colors = ['primary', 'secondary', 'tertiary', 'error'];
   const colorKey = colors[Math.floor(Math.random() * colors.length)];
@@ -24,11 +26,12 @@ export async function addClass(formData: FormData) {
       name,
       program,
       level,
+      course_id: courseId || null,
       teacher_id: teacherId || null,
       capacity,
       schedule,
       start_date: startDate,
-      status: 'Sắp mở',
+      status: status,
       color_key: colorKey,
     },
   ]).select().single();
@@ -43,6 +46,85 @@ export async function addClass(formData: FormData) {
   revalidatePath('/schedule');
   return { success: true };
 }
+
+export async function updateClass(formData: FormData) {
+  const supabase = await createClient();
+
+  const id = formData.get('id') as string;
+  const code = formData.get('code') as string;
+  const name = formData.get('name') as string;
+  const program = formData.get('program') as string;
+  const level = formData.get('level') as string;
+  const courseId = formData.get('courseId') as string;
+  const teacherId = formData.get('teacherId') as string;
+  const capacity = parseInt(formData.get('capacity') as string || '15', 10);
+  const schedule = formData.get('schedule') as string;
+  const startDate = formData.get('startDate') as string;
+  const endDate = formData.get('endDate') as string;
+  const status = formData.get('status') as string;
+
+  const { error } = await supabase.from('classes').update({
+    code,
+    name,
+    program,
+    level,
+    course_id: courseId || null,
+    teacher_id: teacherId || null,
+    capacity,
+    schedule,
+    start_date: startDate || null,
+    end_date: endDate || null,
+    status,
+  }).eq('id', id);
+
+  if (error) {
+    console.error('Error updating class:', error);
+    throw new Error('Failed to update class');
+  }
+
+  revalidatePath('/classes');
+  revalidatePath(`/classes/${id}`);
+  revalidatePath('/schedule');
+  return { success: true };
+}
+
+export async function enrollStudentInClass(studentId: string, classId: string) {
+  const supabase = await createClient();
+
+  // Check if already enrolled
+  const { data: existing } = await supabase
+    .from('enrollments')
+    .select('id')
+    .eq('student_id', studentId)
+    .eq('class_id', classId)
+    .single();
+
+  if (existing) {
+    throw new Error('Học viên này đã có trong lớp.');
+  }
+
+  // Insert enrollment
+  const { error } = await supabase.from('enrollments').insert([
+    {
+      student_id: studentId,
+      class_id: classId,
+      status: 'Đang học',
+      enrollment_date: new Date().toISOString().split('T')[0],
+      sessions_completed: 0,
+      attendance_rate: 100,
+    }
+  ]);
+
+  if (error) {
+    console.error('Error enrolling student:', error);
+    throw new Error('Không thể thêm học viên vào lớp');
+  }
+
+  revalidatePath(`/classes/${classId}`);
+  revalidatePath('/classes');
+  return { success: true };
+}
+
 
 export async function deleteClass(id: string) {
   const supabase = await createClient();

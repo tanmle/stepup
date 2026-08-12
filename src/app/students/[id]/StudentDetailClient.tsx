@@ -230,7 +230,7 @@ export default function StudentDetailClient({ student, availableClasses = [] }: 
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-outline-variant/20">
-                            {['Tên lớp', 'Giáo viên', 'Tiến độ', 'Chuyên cần', 'Trạng thái'].map((h) => (
+                            {['Tên lớp', 'Giáo viên', 'Ngày BĐ - KT', 'Tiến độ', 'Chuyên cần', 'Trạng thái'].map((h) => (
                               <th key={h} className="text-left text-label-sm text-on-surface-variant py-sm px-md uppercase tracking-wider">
                                 {h}
                               </th>
@@ -246,6 +246,20 @@ export default function StudentDetailClient({ student, availableClasses = [] }: 
                                 <p className="text-label-sm text-on-surface-variant">{course.schedule}</p>
                               </td>
                               <td className="py-md px-md text-body-md text-on-surface">{course.teacher}</td>
+                              <td className="py-md px-md">
+                                {course.startDate || course.endDate ? (
+                                  <>
+                                    <p className="text-body-md text-on-surface whitespace-nowrap">
+                                      BĐ: {course.startDate ? new Date(course.startDate).toLocaleDateString('vi-VN') : '--'}
+                                    </p>
+                                    <p className="text-body-md text-on-surface whitespace-nowrap">
+                                      KT: {course.endDate ? new Date(course.endDate).toLocaleDateString('vi-VN') : '--'}
+                                    </p>
+                                  </>
+                                ) : (
+                                  <p className="text-body-md text-on-surface-variant italic">Chưa xác định</p>
+                                )}
+                              </td>
                               <td className="py-md px-md">
                                 <p className="text-body-md text-on-surface">{course.sessionsCompleted}/{course.sessionsTotal} buổi</p>
                                 <div className="progress-bar mt-xs w-24">

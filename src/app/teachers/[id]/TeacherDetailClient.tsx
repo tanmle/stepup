@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { addTeacherDocumentRecord, deleteTeacherDocumentRecord } from './documents_actions';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { addTeacherAttendance, addTeacherEvaluation, addTeacherSalaryRecord, deleteTeacherAttendance } from '../actions';
 
@@ -32,8 +34,61 @@ interface TeacherDetailClientProps {
 
 export default function TeacherDetailClient({ teacher }: TeacherDetailClientProps) {
   const [activeTab, setActiveTab] = useState('profile');
+  const [payMethod, setPayMethod] = useState('Chuyển khoản');
+  const [payNote, setPayNote] = useState('');
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  // Document state
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+
+  const handleUploadDoc = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    e.target.value = '';
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Kích thước file không được vượt quá 5MB');
+      return;
+    }
+
+    setUploadingDoc(docType);
+    try {
+      const supabase = createClient();
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${teacher.id}_${docType}_${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('teacher_documents')
+        .upload(fileName, file);
+        
+      if (uploadError) throw new Error(uploadError.message);
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('teacher_documents')
+        .getPublicUrl(fileName);
+
+      await addTeacherDocumentRecord(teacher.id, docType, file.name, publicUrl);
+      router.refresh();
+      
+    } catch (err: any) {
+      alert('Lỗi tải file: ' + err.message);
+    } finally {
+      setUploadingDoc(null);
+    }
+  };
+
+  const handleDeleteDoc = async (docId: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa tài liệu này?')) return;
+    try {
+      await deleteTeacherDocumentRecord(docId, teacher.id);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
 
   // States for attendance
   const [attDate, setAttDate] = useState(new Date().toISOString().split('T')[0]);
@@ -822,28 +877,45 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                   { id: 'cv', label: 'CV', type: 'description' },
                   { id: 'suc_khoe', label: 'Giấy khám sức khỏe', type: 'medical_information' },
                 ].map(doc => {
-                  // Mock checking if document exists
-                  const hasDoc = teacher.documents?.some((d: any) => d.type === doc.id);
+                  const existingDoc = teacher.documents?.find((d: any) => d.doc_type === doc.id);
+                  const isUploading = uploadingDoc === doc.id;
                   
                   return (
-                    <div key={doc.id} className={`border rounded-xl p-md flex flex-col items-center justify-center gap-sm text-center aspect-square transition-colors ${
-                      hasDoc ? 'border-emerald-200 bg-emerald-50/30' : 'border-dashed border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low cursor-pointer'
+                    <div key={doc.id} className={`relative border rounded-xl p-md flex flex-col items-center justify-center gap-sm text-center aspect-square transition-colors ${
+                      existingDoc ? 'border-emerald-200 bg-emerald-50/30' : 'border-dashed border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low'
                     }`}>
-                      <span className={`material-symbols-outlined text-[40px] ${hasDoc ? 'text-emerald-500' : 'text-on-surface-variant opacity-50'}`}>
+                      <span className={`material-symbols-outlined text-[40px] ${existingDoc ? 'text-emerald-500' : 'text-on-surface-variant opacity-50'}`}>
                         {doc.type}
                       </span>
                       <span className="text-label-sm font-medium">{doc.label}</span>
                       
-                      {hasDoc ? (
-                        <span className="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[12px]">check</span>
-                          Đã tải lên
+                      {isUploading ? (
+                        <span className="text-[11px] text-primary flex items-center gap-1 mt-1">
+                          <span className="material-symbols-outlined animate-spin text-[12px]">progress_activity</span>
+                          Đang tải lên...
                         </span>
+                      ) : existingDoc ? (
+                        <div className="flex gap-2 mt-1">
+                          <a href={existingDoc.file_url} target="_blank" rel="noreferrer" className="text-[11px] bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-emerald-200 transition-colors">
+                            <span className="material-symbols-outlined text-[12px]">visibility</span>
+                            Xem
+                          </a>
+                          <button type="button" onClick={() => handleDeleteDoc(existingDoc.id)} className="text-[11px] bg-red-50 text-red-600 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-red-100 transition-colors">
+                            <span className="material-symbols-outlined text-[12px]">delete</span>
+                            Xóa
+                          </button>
+                        </div>
                       ) : (
-                        <span className="text-[11px] text-on-surface-variant flex items-center gap-1">
+                        <label className="text-[11px] text-on-surface-variant flex items-center gap-1 mt-1 cursor-pointer hover:text-primary transition-colors">
                           <span className="material-symbols-outlined text-[12px]">upload</span>
                           Tải lên
-                        </span>
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            accept=".pdf,.png,.jpg,.jpeg" 
+                            onChange={(e) => handleUploadDoc(e, doc.id)}
+                          />
+                        </label>
                       )}
                     </div>
                   );

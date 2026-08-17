@@ -15,6 +15,7 @@ export async function addClass(formData: FormData) {
   const capacity = parseInt(formData.get('capacity') as string || '15', 10);
   const schedule = formData.get('schedule') as string;
   const startDate = formData.get('startDate') as string;
+  const endDate = formData.get('endDate') as string;
   const status = formData.get('status') as string || 'Sắp mở';
   
   const colors = ['primary', 'secondary', 'tertiary', 'error'];
@@ -30,7 +31,8 @@ export async function addClass(formData: FormData) {
       teacher_id: teacherId || null,
       capacity,
       schedule,
-      start_date: startDate,
+      start_date: startDate || null,
+      end_date: endDate || null,
       status: status,
       color_key: colorKey,
     },

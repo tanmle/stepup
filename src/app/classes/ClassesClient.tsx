@@ -122,7 +122,7 @@ export default function ClassesClient({ initialClasses }: ClassesClientProps) {
       {/* Main Content Card */}
       <div className="card overflow-hidden">
         {/* Desktop Table View */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-outline-variant/20 bg-surface-container-low/50">

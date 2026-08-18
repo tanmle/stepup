@@ -31,6 +31,8 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [payAmount, setPayAmount] = useState('');
+  const [payDiscount, setPayDiscount] = useState('0');
+  const [payRefund, setPayRefund] = useState('0');
   const [payMethod, setPayMethod] = useState('Chuyển khoản');
   const [payNote, setPayNote] = useState('');
 
@@ -38,6 +40,8 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
     if (record.amountOwed <= 0) return;
     setSelectedRecord(record);
     setPayAmount(record.amountOwed.toString());
+    setPayDiscount('0');
+    setPayRefund('0');
     setPayMethod('Chuyển khoản');
     setPayNote('');
     setCollectModalOpen(true);
@@ -55,6 +59,8 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
     const formData = new FormData();
     formData.append('id', selectedRecord.id);
     formData.append('amount', payAmount);
+    formData.append('discount', payDiscount);
+    formData.append('refund', payRefund);
     formData.append('method', payMethod);
     formData.append('note', payNote);
 
@@ -75,7 +81,7 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
 
   const handleExportExcel = () => {
     // Generate CSV content
-    const headers = ['Học viên', 'Mã HV', 'Lớp học', 'Tổng học phí', 'Đã nộp', 'Còn nợ', 'Hạn nộp', 'Trạng thái'];
+    const headers = ['Học viên', 'Mã HV', 'Lớp học', 'Tổng học phí', 'Chiết khấu', 'Đã nộp', 'Hoàn học phí', 'Còn nợ', 'Hạn nộp', 'Trạng thái'];
     
     // We export the filtered records to match what the user is currently viewing
     const rows = filtered.map(r => [
@@ -83,7 +89,9 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
       `"${r.student.code || ''}"`,
       `"${r.className}"`,
       r.totalTuition,
+      r.discount || 0,
       r.amountPaid,
+      r.refund || 0,
       r.amountOwed,
       `"${r.dueDate}"`,
       `"${r.status}"`
@@ -252,8 +260,16 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
                   <span className="font-medium text-on-surface">{record.totalTuition.toLocaleString('vi-VN')}đ</span>
                 </div>
                 <div className="flex justify-between items-center text-label-sm">
+                  <span className="text-on-surface-variant">Chiết khấu:</span>
+                  <span className="font-medium text-on-surface">{record.discount ? record.discount.toLocaleString('vi-VN') : '0'}đ</span>
+                </div>
+                <div className="flex justify-between items-center text-label-sm">
                   <span className="text-on-surface-variant">Đã nộp:</span>
                   <span className="font-medium text-primary">{record.amountPaid.toLocaleString('vi-VN')}đ</span>
+                </div>
+                <div className="flex justify-between items-center text-label-sm">
+                  <span className="text-on-surface-variant">Hoàn học phí:</span>
+                  <span className="font-medium text-error">{record.refund ? record.refund.toLocaleString('vi-VN') : '0'}đ</span>
                 </div>
                 <div className="flex justify-between items-center text-label-sm">
                   <span className="text-on-surface-variant">Còn nợ:</span>
@@ -282,7 +298,7 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
           <table className="w-full min-w-[1000px]">
             <thead>
               <tr className="border-b border-outline-variant/20 bg-surface-container-low/50">
-                {['Học viên', 'Lớp học', 'Tổng học phí', 'Đã nộp', 'Còn nợ', 'Hạn nộp', 'Trạng thái', 'Thao tác'].map((h) => (
+                {['Học viên', 'Lớp học', 'Tổng học phí', 'Chiết khấu', 'Đã nộp', 'Hoàn học phí', 'Còn nợ', 'Hạn nộp', 'Trạng thái', 'Thao tác'].map((h) => (
                   <th key={h} className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
                     {h}
                   </th>
@@ -314,8 +330,14 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
                   <td className="px-md py-md text-body-md font-medium text-on-surface text-right">
                     {record.totalTuition.toLocaleString('vi-VN')}
                   </td>
+                  <td className="px-md py-md text-body-md text-on-surface text-right">
+                    {record.discount ? record.discount.toLocaleString('vi-VN') : '—'}
+                  </td>
                   <td className="px-md py-md text-body-md font-semibold text-emerald-600 text-right">
                     {record.amountPaid > 0 ? record.amountPaid.toLocaleString('vi-VN') : '—'}
+                  </td>
+                  <td className="px-md py-md text-body-md text-error text-right">
+                    {record.refund > 0 ? record.refund.toLocaleString('vi-VN') : '—'}
                   </td>
                   <td className={`px-md py-md text-body-md font-semibold text-right ${
                     record.amountOwed > 0
@@ -399,10 +421,31 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
                   className="input-field w-full"
                   value={payAmount}
                   onChange={(e) => setPayAmount(e.target.value)}
-                  max={selectedRecord.amountOwed}
-                  min="1"
-                  required
+                  placeholder="0"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-md">
+                <div>
+                  <label className="text-label-sm text-on-surface-variant mb-1 block">Chiết khấu (giảm trừ)</label>
+                  <input 
+                    type="number" 
+                    className="input-field w-full"
+                    value={payDiscount}
+                    onChange={e => setPayDiscount(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-label-sm text-on-surface-variant mb-1 block">Hoàn học phí</label>
+                  <input 
+                    type="number" 
+                    className="input-field w-full"
+                    value={payRefund}
+                    onChange={e => setPayRefund(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
               </div>
 
               <div>

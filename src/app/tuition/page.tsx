@@ -41,6 +41,8 @@ export default async function TuitionPage() {
     totalTuition: r.total_tuition,
     amountPaid: r.amount_paid,
     amountOwed: r.amount_owed,
+    discount: r.discount || 0,
+    refund: r.refund || 0,
     dueDate: r.due_date ? new Date(r.due_date).toLocaleDateString('vi-VN') : '',
     status: r.status,
   }));

@@ -7,12 +7,17 @@ export async function collectTuition(formData: FormData) {
   const supabase = await createClient();
 
   const id = formData.get('id') as string;
-  const amount = parseFloat(formData.get('amount') as string);
+  const amount = parseFloat(formData.get('amount') as string) || 0;
+  const discount = parseFloat(formData.get('discount') as string) || 0;
+  const refund = parseFloat(formData.get('refund') as string) || 0;
   const method = formData.get('method') as string;
   const note = formData.get('note') as string;
   
-  if (!id || !amount || amount <= 0) {
-    throw new Error('Dữ liệu không hợp lệ');
+  if (!id || (amount === 0 && discount === 0 && refund === 0)) {
+    throw new Error('Dữ liệu không hợp lệ: Cần có số tiền thu, chiết khấu hoặc hoàn học phí');
+  }
+  if (amount < 0 || discount < 0 || refund < 0) {
+    throw new Error('Số tiền không được âm');
   }
 
   // 1. Fetch current record
@@ -28,7 +33,9 @@ export async function collectTuition(formData: FormData) {
 
   // 2. Calculate new values
   const newAmountPaid = (Number(record.amount_paid) || 0) + amount;
-  const newAmountOwed = Math.max(0, (Number(record.amount_owed) || 0) - amount);
+  const newDiscount = (Number(record.discount) || 0) + discount;
+  const newRefund = (Number(record.refund) || 0) + refund;
+  const newAmountOwed = Math.max(0, (Number(record.total_tuition) || 0) - newAmountPaid - newDiscount + newRefund);
   
   let newStatus = record.status;
   let newDueDate = record.due_date;
@@ -49,6 +56,8 @@ export async function collectTuition(formData: FormData) {
     .update({
       amount_paid: newAmountPaid,
       amount_owed: newAmountOwed,
+      discount: newDiscount,
+      refund: newRefund,
       status: newStatus,
       due_date: newDueDate,
       updated_at: new Date().toISOString(),
@@ -61,22 +70,28 @@ export async function collectTuition(formData: FormData) {
   }
 
   // 4. Create transaction
-  const description = `Thu học phí - ${record.students?.full_name} - Lớp ${record.classes?.name}${note ? ` (${note})` : ''}`;
+  let descriptionParts = [`Thu học phí - ${record.students?.full_name} - Lớp ${record.classes?.name}`];
+  if (discount > 0) descriptionParts.push(`CK: ${discount.toLocaleString('vi-VN')}đ`);
+  if (refund > 0) descriptionParts.push(`Hoàn: ${refund.toLocaleString('vi-VN')}đ`);
+  if (note) descriptionParts.push(`(${note})`);
+  const description = descriptionParts.join(' - ');
   
-  const { error: transError } = await supabase
-    .from('transactions')
-    .insert([
-      {
-        description,
-        amount: amount,
-        type: 'income',
-        method: method,
-      }
-    ]);
+  if (amount > 0 || discount > 0 || refund > 0) {
+    const { error: transError } = await supabase
+      .from('transactions')
+      .insert([
+        {
+          description,
+          amount: amount,
+          type: 'income',
+          method: method,
+        }
+      ]);
 
-  if (transError) {
-    console.error('Error creating transaction:', transError);
-    // Don't throw, since tuition was updated successfully
+    if (transError) {
+      console.error('Error creating transaction:', transError);
+      // Don't throw, since tuition was updated successfully
+    }
   }
 
   revalidatePath('/tuition');

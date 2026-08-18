@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { updateParent, updateParentCRM, addParentInteraction, linkStudentToParent, unlinkStudentFromParent } from '../actions';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { formatVND } from '@/utils/format';
 
 interface EditParentClientProps {
   parent: any;
@@ -376,11 +377,11 @@ export default function EditParentClient({ parent, allStudents }: EditParentClie
             <div className="grid grid-cols-1 md:grid-cols-2 gap-lg mb-lg">
               <div className="p-lg rounded-2xl bg-primary/5 border border-primary/10">
                 <p className="text-label-md text-on-surface-variant mb-1">Tổng học phí đã đóng</p>
-                <p className="text-headline-md font-bold text-primary">{parent.totalPaid?.toLocaleString('vi-VN')}đ</p>
+                <p className="text-headline-md font-bold text-primary">{formatVND(parent.totalPaid)}</p>
               </div>
               <div className="p-lg rounded-2xl bg-error/5 border border-error/10">
                 <p className="text-label-md text-on-surface-variant mb-1">Công nợ hiện tại</p>
-                <p className="text-headline-md font-bold text-error">{parent.totalDebt?.toLocaleString('vi-VN')}đ</p>
+                <p className="text-headline-md font-bold text-error">{formatVND(parent.totalDebt)}</p>
               </div>
             </div>
 
@@ -406,7 +407,7 @@ export default function EditParentClient({ parent, allStudents }: EditParentClie
                     parent.tuitionHistory?.map((t: any) => (
                       <tr key={t.id} className="hover:bg-surface-container-lowest transition-colors">
                         <td className="p-3">{t.date}</td>
-                        <td className="p-3 font-medium">{t.amount?.toLocaleString('vi-VN')}đ</td>
+                        <td className="p-3 font-medium">{formatVND(t.amount)}</td>
                         <td className="p-3">{t.studentName}</td>
                         <td className="p-3">
                           <StatusBadge status={t.status} size="sm" />

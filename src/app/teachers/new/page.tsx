@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { addTeacher } from '../actions';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 
 export default function NewTeacherPage() {
   const router = useRouter();
@@ -281,13 +282,11 @@ export default function NewTeacherPage() {
               <label className="text-label-sm text-on-surface-variant mb-xs block">
                 Mức lương
               </label>
-              <input
-                type="number"
-                min="0"
+              <CurrencyInput
                 value={form.salaryRate}
-                onChange={(e) => handleChange('salaryRate', e.target.value)}
-                placeholder="Ví dụ: 150000"
-                className="input-field w-full"
+                onChange={(val) => handleChange('salaryRate', val)}
+                placeholder="Ví dụ: 150.000"
+                className="w-full"
               />
             </div>
           </div>

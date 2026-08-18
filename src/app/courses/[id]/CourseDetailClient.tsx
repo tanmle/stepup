@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { updateCourse } from '../actions';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 
 export default function CourseDetailClient({ initialCourse }: { initialCourse: any }) {
   const router = useRouter();
@@ -107,14 +108,12 @@ export default function CourseDetailClient({ initialCourse }: { initialCourse: a
 
           <div>
             <label className="text-label-sm text-on-surface-variant block mb-xs">Học phí (VND) *</label>
-            <input
-              type="number"
+            <CurrencyInput
               name="tuition_fee"
               required
-              min="0"
-              className="input-field w-full"
+              className="w-full"
               value={formData.tuition_fee}
-              onChange={handleChange}
+              onChange={(val) => setFormData(prev => ({ ...prev, tuition_fee: val }))}
             />
           </div>
           <div className="grid grid-cols-2 gap-sm">

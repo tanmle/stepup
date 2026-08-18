@@ -35,7 +35,7 @@ export async function collectTuition(formData: FormData) {
   const newAmountPaid = (Number(record.amount_paid) || 0) + amount;
   const newDiscount = (Number(record.discount) || 0) + discount;
   const newRefund = (Number(record.refund) || 0) + refund;
-  const newAmountOwed = Math.max(0, (Number(record.total_tuition) || 0) - newAmountPaid - newDiscount + newRefund);
+  const newAmountOwed = Math.max(0, (Number(record.total_tuition) || 0) - newAmountPaid - newDiscount - newRefund);
   
   let newStatus = record.status;
   let newDueDate = record.due_date;
@@ -66,7 +66,7 @@ export async function collectTuition(formData: FormData) {
 
   if (updateError) {
     console.error('Error updating tuition:', updateError);
-    throw new Error('Lỗi cập nhật học phí');
+    throw new Error('Lỗi cập nhật học phí: ' + updateError.message);
   }
 
   // 4. Create transaction

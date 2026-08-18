@@ -4,6 +4,8 @@ import { useState, useMemo, useTransition, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Pagination from '@/components/ui/Pagination';
+import CurrencyInput from '@/components/ui/CurrencyInput';
+import { formatVND } from '@/utils/format';
 import { collectTuition } from './actions';
 
 const ITEMS_PER_PAGE = 10;
@@ -36,6 +38,17 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
   const [payMethod, setPayMethod] = useState('Chuyển khoản');
   const [payNote, setPayNote] = useState('');
 
+  // Tự động điều chỉnh số tiền thu khi nhập chiết khấu hoặc hoàn học phí
+  useEffect(() => {
+    if (collectModalOpen && selectedRecord) {
+      const discount = parseInt(payDiscount) || 0;
+      const refund = parseInt(payRefund) || 0;
+      const amountOwed = selectedRecord.amountOwed || 0;
+      
+      const newPayAmount = Math.max(0, amountOwed - discount - refund);
+      setPayAmount(newPayAmount.toString());
+    }
+  }, [payDiscount, payRefund]);
   const openCollectModal = (record: any) => {
     if (record.amountOwed <= 0) return;
     setSelectedRecord(record);
@@ -67,6 +80,24 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
     startTransition(async () => {
       try {
         await collectTuition(formData);
+        
+        // Cập nhật selectedRecord để hiển thị lên biên lai chính xác (trạng thái mới)
+        const amt = parseInt(payAmount) || 0;
+        const disc = parseInt(payDiscount) || 0;
+        const ref = parseInt(payRefund) || 0;
+        const newAmountPaid = (selectedRecord.amountPaid || 0) + amt;
+        const newDiscount = (selectedRecord.discount || 0) + disc;
+        const newRefund = (selectedRecord.refund || 0) + ref;
+        const newAmountOwed = Math.max(0, selectedRecord.totalTuition - newAmountPaid - newDiscount - newRefund);
+        
+        setSelectedRecord({
+          ...selectedRecord,
+          amountPaid: newAmountPaid,
+          discount: newDiscount,
+          refund: newRefund,
+          amountOwed: newAmountOwed,
+        });
+
         setCollectModalOpen(false);
         setReceiptModalOpen(true); // Open receipt after success
       } catch (err: any) {
@@ -257,23 +288,23 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
               <div className="flex flex-col gap-xs mt-xs bg-surface-container-low p-sm rounded-lg">
                 <div className="flex justify-between items-center text-label-sm">
                   <span className="text-on-surface-variant">Tổng học phí:</span>
-                  <span className="font-medium text-on-surface">{record.totalTuition.toLocaleString('vi-VN')}đ</span>
+                  <span className="font-medium text-on-surface">{formatVND(record.totalTuition)}</span>
                 </div>
                 <div className="flex justify-between items-center text-label-sm">
                   <span className="text-on-surface-variant">Chiết khấu:</span>
-                  <span className="font-medium text-on-surface">{record.discount ? record.discount.toLocaleString('vi-VN') : '0'}đ</span>
+                  <span className="font-medium text-on-surface">{formatVND(record.discount)}</span>
                 </div>
                 <div className="flex justify-between items-center text-label-sm">
                   <span className="text-on-surface-variant">Đã nộp:</span>
-                  <span className="font-medium text-primary">{record.amountPaid.toLocaleString('vi-VN')}đ</span>
+                  <span className="font-medium text-primary">{formatVND(record.amountPaid)}</span>
                 </div>
                 <div className="flex justify-between items-center text-label-sm">
                   <span className="text-on-surface-variant">Hoàn học phí:</span>
-                  <span className="font-medium text-error">{record.refund ? record.refund.toLocaleString('vi-VN') : '0'}đ</span>
+                  <span className="font-medium text-error">{formatVND(record.refund)}</span>
                 </div>
                 <div className="flex justify-between items-center text-label-sm">
                   <span className="text-on-surface-variant">Còn nợ:</span>
-                  <span className={`font-semibold ${record.amountOwed > 0 ? 'text-error' : 'text-emerald-600'}`}>{record.amountOwed.toLocaleString('vi-VN')}đ</span>
+                  <span className={`font-semibold ${record.amountOwed > 0 ? 'text-error' : 'text-emerald-600'}`}>{formatVND(record.amountOwed)}</span>
                 </div>
               </div>
               
@@ -328,23 +359,23 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
                   </td>
                   <td className="px-md py-md text-body-md text-on-surface">{record.className}</td>
                   <td className="px-md py-md text-body-md font-medium text-on-surface text-right">
-                    {record.totalTuition.toLocaleString('vi-VN')}
+                    {formatVND(record.totalTuition).replace('đ', '')}
                   </td>
                   <td className="px-md py-md text-body-md text-on-surface text-right">
-                    {record.discount ? record.discount.toLocaleString('vi-VN') : '—'}
+                    {record.discount ? formatVND(record.discount).replace('đ', '') : '—'}
                   </td>
                   <td className="px-md py-md text-body-md font-semibold text-emerald-600 text-right">
-                    {record.amountPaid > 0 ? record.amountPaid.toLocaleString('vi-VN') : '—'}
+                    {record.amountPaid > 0 ? formatVND(record.amountPaid).replace('đ', '') : '—'}
                   </td>
                   <td className="px-md py-md text-body-md text-error text-right">
-                    {record.refund > 0 ? record.refund.toLocaleString('vi-VN') : '—'}
+                    {record.refund > 0 ? formatVND(record.refund).replace('đ', '') : '—'}
                   </td>
                   <td className={`px-md py-md text-body-md font-semibold text-right ${
                     record.amountOwed > 0
                       ? record.status === 'Quá hạn' ? 'text-error' : 'text-amber-600'
                       : 'text-emerald-600'
                   }`}>
-                    {record.amountOwed > 0 ? record.amountOwed.toLocaleString('vi-VN') : '✓'}
+                    {record.amountOwed > 0 ? formatVND(record.amountOwed).replace('đ', '') : '✓'}
                   </td>
                   <td className={`px-md py-md text-body-md ${record.status === 'Quá hạn' ? 'text-error font-semibold' : 'text-on-surface-variant'}`}>
                     {record.dueDate}
@@ -411,16 +442,15 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
               
               <div className="bg-primary/5 p-sm rounded-lg flex justify-between">
                 <span className="text-on-surface-variant">Còn nợ:</span>
-                <span className="font-bold text-primary">{selectedRecord.amountOwed.toLocaleString('vi-VN')}đ</span>
+                <span className="font-bold text-primary">{formatVND(selectedRecord.amountOwed)}</span>
               </div>
 
               <div>
                 <label className="text-label-sm text-on-surface-variant mb-1 block">Số tiền thu</label>
-                <input 
-                  type="number" 
-                  className="input-field w-full"
+                <CurrencyInput 
+                  className="w-full"
                   value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
+                  onChange={setPayAmount}
                   placeholder="0"
                 />
               </div>
@@ -428,21 +458,19 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
               <div className="grid grid-cols-2 gap-md">
                 <div>
                   <label className="text-label-sm text-on-surface-variant mb-1 block">Chiết khấu (giảm trừ)</label>
-                  <input 
-                    type="number" 
-                    className="input-field w-full"
+                  <CurrencyInput 
+                    className="w-full"
                     value={payDiscount}
-                    onChange={e => setPayDiscount(e.target.value)}
+                    onChange={setPayDiscount}
                     placeholder="0"
                   />
                 </div>
                 <div>
                   <label className="text-label-sm text-on-surface-variant mb-1 block">Hoàn học phí</label>
-                  <input 
-                    type="number" 
-                    className="input-field w-full"
+                  <CurrencyInput 
+                    className="w-full"
                     value={payRefund}
-                    onChange={e => setPayRefund(e.target.value)}
+                    onChange={setPayRefund}
                     placeholder="0"
                   />
                 </div>
@@ -538,23 +566,23 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
               </div>
 
               <div className="border-t border-b border-dashed border-gray-300 py-md my-xs space-y-sm text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tổng học phí:</span>
-                  <span>{selectedRecord.totalTuition.toLocaleString('vi-VN')} đ</span>
+                <div className="flex justify-between mb-sm">
+                  <span className="text-on-surface-variant">Tổng học phí:</span>
+                  <span>{formatVND(selectedRecord.totalTuition)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Đã nộp:</span>
-                  <span>{selectedRecord.amountPaid.toLocaleString('vi-VN')} đ</span>
+                <div className="flex justify-between mb-sm">
+                  <span className="text-on-surface-variant">Đã thanh toán:</span>
+                  <span>{formatVND(selectedRecord.amountPaid)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Khấu trừ/Giảm:</span>
-                  <span>0 đ</span>
+                <div className="flex justify-between mb-md pb-md border-b">
+                  <span className="text-on-surface-variant">Chiết khấu / Hoàn:</span>
+                  <span>CK: {formatVND(selectedRecord.discount)} | Hoàn: {formatVND(selectedRecord.refund)}</span>
                 </div>
               </div>
 
               <div className="flex justify-between items-center text-lg">
                 <span className="font-semibold">CÒN NỢ:</span>
-                <span className="font-bold text-red-600">{selectedRecord.amountOwed.toLocaleString('vi-VN')} đ</span>
+                <span className="font-bold text-red-600">{formatVND(selectedRecord.amountOwed)}</span>
               </div>
 
               <div className="mt-xl text-center text-sm text-gray-500 italic">
@@ -625,24 +653,24 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
             </div>
           </div>
 
-          <div className="border-t border-b border-dashed border-gray-300 py-md my-xs space-y-sm text-sm">
-            <div className="flex justify-between">
+          <div className="border-t border-b border-dashed border-gray-300 py-md my-xs space-y-[2px]">
+            <div className="flex justify-between text-[11px] mb-[2px]">
               <span className="text-gray-600">Tổng học phí:</span>
-              <span>{selectedRecord.totalTuition.toLocaleString('vi-VN')} đ</span>
+              <span>{formatVND(selectedRecord.totalTuition)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Đã nộp:</span>
-              <span>{selectedRecord.amountPaid.toLocaleString('vi-VN')} đ</span>
+            <div className="flex justify-between text-[11px] mb-[2px]">
+              <span className="text-gray-600">Đã thanh toán:</span>
+              <span>{formatVND(selectedRecord.amountPaid)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Khấu trừ/Giảm:</span>
-              <span>0 đ</span>
+            <div className="flex justify-between text-[11px] mb-[2px]">
+              <span className="text-gray-600">CK / Hoàn:</span>
+              <span>CK: {formatVND(selectedRecord.discount)} | Hoàn: {formatVND(selectedRecord.refund)}</span>
             </div>
           </div>
 
           <div className="flex justify-between items-center text-lg mt-md">
             <span className="font-semibold">CÒN NỢ:</span>
-            <span className="font-bold text-red-600">{selectedRecord.amountOwed.toLocaleString('vi-VN')} đ</span>
+            <span className="font-bold text-red-600">{formatVND(selectedRecord.amountOwed)}</span>
           </div>
 
           <div className="mt-xl text-center text-sm text-gray-500 italic">

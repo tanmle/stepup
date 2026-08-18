@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useMemo, useTransition, useEffect } from 'react';
 import { addTeacherAttendance, deleteTeacherAttendance, generateSalaryRecord, generateAttendanceFromSessions, updateTeacherAttendance } from './actions';
+import CurrencyInput from '@/components/ui/CurrencyInput';
+import { formatVND } from '@/utils/format';
 
 interface PayrollClientProps {
   teachers: any[];
@@ -193,7 +195,7 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
         {selectedTeacher && (
           <div className="text-body-sm text-on-surface-variant bg-surface-container py-1 px-3 rounded-lg border border-outline-variant/20 flex gap-4">
             <span>Loại lương: <strong className="text-on-surface">{isHourly ? 'Theo giờ' : 'Theo tiết/buổi'}</strong></span>
-            <span>Đơn giá: <strong className="text-on-surface">{selectedTeacher.salary_rate?.toLocaleString('vi-VN')}đ</strong></span>
+            <span>Đơn giá: <strong className="text-on-surface">{formatVND(selectedTeacher.salary_rate)}</strong></span>
           </div>
         )}
       </div>
@@ -347,10 +349,10 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
                   <tr key={s.id} className="hover:bg-surface-container/30">
                     <td className="px-md py-md font-medium text-on-background">Tháng {s.month}/{s.year}</td>
                     <td className="px-md py-md text-right">{s.sessions_count || s.total_hours} {isHourly ? 'giờ' : 'tiết'}</td>
-                    <td className="px-md py-md text-right text-on-surface-variant">{(s.rate_per_unit || 0).toLocaleString()}đ</td>
-                    <td className="px-md py-md text-right text-primary">+{(s.bonus || 0).toLocaleString()}đ</td>
-                    <td className="px-md py-md text-right text-error">-{(s.deductions + (s.fine || 0)).toLocaleString()}đ</td>
-                    <td className="px-md py-md text-right font-bold text-on-background">{(s.net_salary || 0).toLocaleString()}đ</td>
+                    <td className="px-md py-md text-right text-on-surface-variant">{formatVND(s.rate_per_unit)}</td>
+                    <td className="px-md py-md text-right text-primary">+{formatVND(s.bonus)}</td>
+                    <td className="px-md py-md text-right text-error">-{formatVND(s.deductions + (s.fine || 0))}</td>
+                    <td className="px-md py-md text-right font-bold text-on-background">{formatVND(s.net_salary)}</td>
                     <td className="px-md py-md text-center">
                       <span className={`px-2 py-1 rounded-full text-label-sm ${s.status === 'Đã thanh toán' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-highest text-on-surface-variant'}`}>
                         {s.status}
@@ -464,18 +466,18 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
                   ) : (
                     <li>Tổng số <strong>tiết/buổi</strong> từ dữ liệu Chấm công</li>
                   )}
-                  <li>Nhân với đơn giá: <strong>{selectedTeacher?.salary_rate?.toLocaleString()}đ</strong></li>
+                  <li>Nhân với đơn giá: <strong>{formatVND(selectedTeacher?.salary_rate)}</strong></li>
                 </ul>
               </div>
 
               <div className="grid grid-cols-2 gap-md">
                 <div>
                   <label className="text-label-sm text-on-surface-variant mb-xs block">Thưởng (VNĐ)</label>
-                  <input type="number" min="0" value={salaryBonus} onChange={(e) => setSalaryBonus(parseInt(e.target.value) || 0)} className="input-field w-full" />
+                  <CurrencyInput value={salaryBonus} onChange={v => setSalaryBonus(parseInt(v) || 0)} className="w-full" />
                 </div>
                 <div>
                   <label className="text-label-sm text-on-surface-variant mb-xs block">Phạt/Khấu trừ (VNĐ)</label>
-                  <input type="number" min="0" value={salaryFine} onChange={(e) => setSalaryFine(parseInt(e.target.value) || 0)} className="input-field w-full" />
+                  <CurrencyInput value={salaryFine} onChange={v => setSalaryFine(parseInt(v) || 0)} className="w-full" />
                 </div>
               </div>
 

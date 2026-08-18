@@ -3,6 +3,7 @@
 import KpiCard from '@/components/ui/KpiCard';
 import StatusBadge from '@/components/ui/StatusBadge';
 import DashboardCharts from '@/components/charts/DashboardCharts';
+import { formatVND } from '@/utils/format';
 import {
   DASHBOARD_KPIS,
   RECENT_ENROLLMENTS,
@@ -30,9 +31,9 @@ export default function DashboardClient({ data }: DashboardClientProps) {
     if (kpi.label === 'Học viên') return { ...kpi, value: data.totalStudents.toLocaleString('vi-VN') };
     if (kpi.label === 'Đang học') return { ...kpi, value: data.activeStudents.toLocaleString('vi-VN') };
     if (kpi.label === 'Giáo viên') return { ...kpi, value: data.totalTeachers.toString() };
-    if (kpi.label === 'Doanh thu') return { ...kpi, value: data.revenue.toLocaleString('vi-VN') + 'đ' };
-    if (kpi.label === 'Công nợ') return { ...kpi, value: data.debt.toLocaleString('vi-VN') + 'đ' };
-    if (kpi.label === 'Lợi nhuận') return { ...kpi, value: data.profit.toLocaleString('vi-VN') + 'đ' };
+    if (kpi.label === 'Doanh thu') return { ...kpi, value: formatVND(data.revenue) };
+    if (kpi.label === 'Công nợ') return { ...kpi, value: formatVND(data.debt) };
+    if (kpi.label === 'Lợi nhuận') return { ...kpi, value: formatVND(data.profit) };
     return kpi;
   });
 
@@ -152,7 +153,7 @@ export default function DashboardClient({ data }: DashboardClientProps) {
                   }`}
                 >
                   {tx.type === 'income' ? '+' : '-'}
-                  {tx.amount.toLocaleString('vi-VN')}
+                  {formatVND(tx.amount)}
                 </span>
               </div>
             ))}

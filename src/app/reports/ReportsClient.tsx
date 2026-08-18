@@ -3,6 +3,7 @@
 import CollectionGauge from '@/components/charts/CollectionGauge';
 import CategoryBreakdown from '@/components/charts/CategoryBreakdown';
 import ReportsRevenueChart from '@/components/charts/ReportsRevenueChart';
+import { formatVND } from '@/utils/format';
 
 interface ReportsClientProps {
   data: {
@@ -104,7 +105,7 @@ export default function ReportsClient({ data }: ReportsClientProps) {
                 <span className={`material-symbols-outlined text-[20px] ${kpi.color}`}>{kpi.icon}</span>
               </div>
               <p className={`text-[22px] font-bold ${kpi.color} leading-tight`}>
-                {(kpi.value / 1_000_000).toLocaleString('vi-VN')}M <span className="text-body-md font-normal text-on-surface-variant">đ</span>
+                {formatVND(kpi.value)}
               </p>
               {kpi.trend && (
                 <div className="flex items-center gap-xs mt-xs">
@@ -174,10 +175,10 @@ export default function ReportsClient({ data }: ReportsClientProps) {
           </div>
           <div className="space-y-sm">
             {[
-              { label: 'Tổng doanh thu', value: (data.totalRevenue / 1000000).toLocaleString('vi-VN') + 'M đ', change: '+21.4%', up: true },
-              { label: 'Tổng chi phí', value: (data.totalCost / 1000000).toLocaleString('vi-VN') + 'M đ', change: '+3.4%', up: false },
-              { label: 'Lợi nhuận ròng', value: (data.netProfit / 1000000).toLocaleString('vi-VN') + 'M đ', change: '+32.7%', up: true },
-              { label: 'Học phí tồn đọng', value: (data.tuitionDebt / 1000000).toLocaleString('vi-VN') + 'M đ', change: '-3%', up: true },
+              { label: 'Tổng doanh thu', value: formatVND(data.totalRevenue), change: '+21.4%', up: true },
+              { label: 'Tổng chi phí', value: formatVND(data.totalCost), change: '+3.4%', up: false },
+              { label: 'Lợi nhuận ròng', value: formatVND(data.netProfit), change: '+32.7%', up: true },
+              { label: 'Học phí tồn đọng', value: formatVND(data.tuitionDebt), change: '-3%', up: true },
             ].map((metric) => (
               <div key={metric.label} className="flex items-center justify-between p-sm bg-surface-container-low rounded-xl hover:bg-surface-container transition-colors">
                 <span className="text-body-md text-on-surface">{metric.label}</span>

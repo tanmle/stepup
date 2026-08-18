@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { deleteStudent, enrollStudent } from '../actions';
 import { useRouter } from 'next/navigation';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { formatVND } from '@/utils/format';
 
 const TABS = [
   { id: 'overview', label: 'Tổng quan', icon: 'grid_view' },
@@ -305,7 +306,7 @@ export default function StudentDetailClient({ student, availableClasses = [] }: 
                             </div>
                           </div>
                           <span className="text-body-md font-semibold text-emerald-600">
-                            +{p.amount.toLocaleString('vi-VN')} đ
+                            +{formatVND(p.amount)}
                           </span>
                         </div>
                       ))}
@@ -402,7 +403,7 @@ export default function StudentDetailClient({ student, availableClasses = [] }: 
                 <option value="">-- Chọn lớp học --</option>
                 {availableClasses.map(cls => (
                   <option key={cls.id} value={cls.id}>
-                    {cls.name} (Mã: {cls.code}) - {cls.price ? `${cls.price.toLocaleString('vi-VN')} đ` : 'Chưa có giá'}
+                    {cls.name} (Mã: {cls.code}) - {cls.price ? formatVND(cls.price) : 'Chưa có giá'}
                   </option>
                 ))}
               </select>

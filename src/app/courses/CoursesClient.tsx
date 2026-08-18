@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { deleteCourse } from './actions';
+import { formatVND } from '@/utils/format';
 
 export default function CoursesClient({ initialCourses }: { initialCourses: any[] }) {
   const router = useRouter();
@@ -112,7 +113,7 @@ export default function CoursesClient({ initialCourses }: { initialCourses: any[
                     </td>
                     <td className="p-md text-right whitespace-nowrap">
                       <span className="font-medium text-primary text-body-md">
-                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(course.tuition_fee)}
+                        {formatVND(course.tuition_fee)}
                       </span>
                     </td>
                     <td className="p-md text-center whitespace-nowrap">

@@ -40,7 +40,7 @@ export default async function SchedulePage() {
       .order('session_date', { ascending: true })
       .order('start_time', { ascending: true }),
     supabase.from('teachers').select('id, full_name').order('full_name'),
-    supabase.from('classes').select('id, code, name, teacher_id').in('status', ['Sắp mở', 'Đang hoạt động', 'Đang học']).order('code'),
+    supabase.from('classes').select('id, code, name, teacher_id, schedule, start_date, end_date').in('status', ['Sắp mở', 'Đang hoạt động', 'Đang học']).order('code'),
     supabase.from('rooms').select('id, name, capacity').eq('status', 'Sẵn sàng').order('name')
   ]);
 

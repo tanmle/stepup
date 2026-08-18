@@ -136,3 +136,130 @@ export async function generateSalaryRecord(
   revalidatePath('/payroll');
   revalidatePath(`/teachers/${teacherId}`);
 }
+
+export async function generateAttendanceFromSessions(teacherId: string, month: number, year: number) {
+  const supabase = await createClient();
+
+  // 1. Get date range for the month
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+
+  // 2. Fetch class_sessions for this teacher in this month
+  const { data: sessions, error: sessionsError } = await supabase
+    .from('class_sessions')
+    .select('id, session_date, start_time, end_time, classes(code, name)')
+    .eq('teacher_id', teacherId)
+    .gte('session_date', startDate)
+    .lte('session_date', endDate)
+    .neq('status', 'Đã hủy')
+    .order('session_date', { ascending: true });
+
+  if (sessionsError) {
+    return { success: false, error: 'Lỗi khi truy xuất lịch dạy: ' + sessionsError.message };
+  }
+
+  if (!sessions || sessions.length === 0) {
+    return { success: true, count: 0, message: 'Không có buổi dạy nào trong tháng này.' };
+  }
+
+  // 3. Fetch existing attendance to avoid duplicates
+  const { data: existingAtt } = await supabase
+    .from('teacher_attendance')
+    .select('date, check_in')
+    .eq('teacher_id', teacherId)
+    .gte('date', startDate)
+    .lte('date', endDate);
+
+  const existingKeys = new Set(
+    (existingAtt || []).map(a => `${a.date}_${a.check_in?.substring(0, 5)}`)
+  );
+
+  // 4. Build records to insert
+  const recordsToInsert: any[] = [];
+  for (const session of sessions) {
+    const key = `${session.session_date}_${session.start_time?.substring(0, 5)}`;
+    if (existingKeys.has(key)) continue;
+
+    // Calculate hours
+    const [inH, inM] = (session.start_time || '00:00').split(':').map(Number);
+    const [outH, outM] = (session.end_time || '00:00').split(':').map(Number);
+    const hours = parseFloat(((outH + outM / 60) - (inH + inM / 60)).toFixed(2));
+
+    const classInfo = session.classes as any;
+    const className = classInfo ? `${classInfo.code} ${classInfo.name}` : '';
+
+    recordsToInsert.push({
+      teacher_id: teacherId,
+      date: session.session_date,
+      check_in: session.start_time,
+      check_out: session.end_time,
+      hours_worked: hours > 0 ? hours : 0,
+      type: 'Dạy học',
+      note: className,
+    });
+  }
+
+  if (recordsToInsert.length === 0) {
+    return { success: true, count: 0, message: 'Tất cả chấm công đã tồn tại, không cần sinh thêm.' };
+  }
+
+  // 5. Insert
+  const { error } = await supabase.from('teacher_attendance').insert(recordsToInsert);
+  if (error) {
+    console.error('Error inserting attendance:', error);
+    return { success: false, error: 'Lỗi khi tạo chấm công: ' + error.message };
+  }
+
+  revalidatePath('/payroll');
+  revalidatePath(`/teachers/${teacherId}`);
+  return { success: true, count: recordsToInsert.length, message: `Đã sinh ${recordsToInsert.length} lượt chấm công từ lịch dạy.` };
+}
+
+export async function updateTeacherAttendance(attendanceId: string, formData: FormData) {
+  const supabase = await createClient();
+
+  const checkIn = formData.get('checkIn') as string;
+  const checkOut = formData.get('checkOut') as string;
+  const type = formData.get('type') as string;
+  const note = formData.get('notes') as string;
+
+  // Calculate hours
+  let hoursWorked = 0;
+  if (checkIn && checkOut) {
+    const [inH, inM] = checkIn.split(':').map(Number);
+    const [outH, outM] = checkOut.split(':').map(Number);
+    hoursWorked = parseFloat(((outH + outM / 60) - (inH + inM / 60)).toFixed(2));
+    if (hoursWorked < 0) hoursWorked = 0;
+  }
+
+  const updateData: any = {
+    check_in: checkIn || null,
+    check_out: checkOut || null,
+    hours_worked: hoursWorked,
+    type: type || 'Dạy học',
+    note: note || null,
+  };
+
+  const { data: record } = await supabase
+    .from('teacher_attendance')
+    .select('teacher_id')
+    .eq('id', attendanceId)
+    .single();
+
+  const { error } = await supabase
+    .from('teacher_attendance')
+    .update(updateData)
+    .eq('id', attendanceId);
+
+  if (error) {
+    console.error('Error updating attendance:', error);
+    return { success: false, error: 'Lỗi khi cập nhật chấm công: ' + error.message };
+  }
+
+  revalidatePath('/payroll');
+  if (record) {
+    revalidatePath(`/teachers/${record.teacher_id}`);
+  }
+  return { success: true };
+}

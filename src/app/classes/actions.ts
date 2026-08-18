@@ -306,3 +306,102 @@ export async function deleteClassSession(sessionId: string, classId: string) {
   revalidatePath('/schedule');
   return { success: true };
 }
+
+export async function generateScheduleSessions(classId: string) {
+  const supabase = await createClient();
+
+  // 1. Fetch class info
+  const { data: cls, error: clsError } = await supabase
+    .from('classes')
+    .select('schedule, start_date, end_date, teacher_id, room_id, rooms(name)')
+    .eq('id', classId)
+    .single();
+
+  if (clsError || !cls) {
+    return { success: false, error: 'Không tìm thấy lớp học' };
+  }
+
+  if (!cls.schedule || !cls.start_date || !cls.end_date) {
+    return { success: false, error: 'Lớp học chưa có đủ thông tin lịch học, ngày bắt đầu hoặc ngày kết thúc' };
+  }
+
+  // 2. Parse schedule string: "Thứ 2, Thứ 4 (18:00-19:30)" or "Thứ 2, Thứ 4, Thứ 6 (18:00-19:30)"
+  const scheduleStr = cls.schedule as string;
+  const timeMatch = scheduleStr.match(/\((\d{2}:\d{2})[-–](\d{2}:\d{2})\)/);
+  if (!timeMatch) {
+    return { success: false, error: 'Không thể đọc giờ học từ lịch: ' + scheduleStr };
+  }
+  const startTime = timeMatch[1];
+  const endTime = timeMatch[2];
+
+  // Parse days: "Thứ 2" -> 1 (Monday), "Thứ 3" -> 2, ... "Thứ 7" -> 6, "Chủ nhật" -> 0
+  const dayMap: Record<string, number> = {
+    'Thứ 2': 1, 'Thứ 3': 2, 'Thứ 4': 3, 'Thứ 5': 4, 'Thứ 6': 5, 'Thứ 7': 6, 'Chủ nhật': 0, 'CN': 0,
+    'T2': 1, 'T3': 2, 'T4': 3, 'T5': 4, 'T6': 5, 'T7': 6
+  };
+  const daysPart = scheduleStr.replace(/\(.*\)/, '').trim();
+  const scheduleDays: number[] = [];
+  for (const [label, dayNum] of Object.entries(dayMap)) {
+    if (daysPart.includes(label)) {
+      scheduleDays.push(dayNum);
+    }
+  }
+
+  if (scheduleDays.length === 0) {
+    return { success: false, error: 'Không thể đọc ngày học từ lịch: ' + scheduleStr };
+  }
+
+  // 3. Get existing session dates for this class (to avoid duplicates)
+  const { data: existingSessions } = await supabase
+    .from('class_sessions')
+    .select('session_date, start_time')
+    .eq('class_id', classId);
+
+  const existingDates = new Set(
+    (existingSessions || []).map(s => `${s.session_date}_${s.start_time?.substring(0, 5)}`)
+  );
+
+  // 4. Generate sessions from start_date to end_date
+  const roomName = cls.rooms ? (cls.rooms as any).name : null;
+  const sessionsToInsert: any[] = [];
+  const start = new Date(cls.start_date);
+  const end = new Date(cls.end_date);
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    if (scheduleDays.includes(d.getDay())) {
+      const dateStr = d.toISOString().split('T')[0];
+      const key = `${dateStr}_${startTime}`;
+      if (!existingDates.has(key)) {
+        sessionsToInsert.push({
+          class_id: classId,
+          teacher_id: cls.teacher_id || null,
+          session_date: dateStr,
+          start_time: startTime + ':00',
+          end_time: endTime + ':00',
+          room: roomName,
+          status: 'Chưa học',
+        });
+      }
+    }
+  }
+
+  if (sessionsToInsert.length === 0) {
+    return { success: true, count: 0, message: 'Tất cả buổi học đã tồn tại, không cần sinh thêm.' };
+  }
+
+  // 5. Insert in batches of 50
+  let insertedCount = 0;
+  for (let i = 0; i < sessionsToInsert.length; i += 50) {
+    const batch = sessionsToInsert.slice(i, i + 50);
+    const { error } = await supabase.from('class_sessions').insert(batch);
+    if (error) {
+      console.error('Error inserting sessions batch:', error);
+      return { success: false, error: 'Lỗi khi tạo buổi học: ' + error.message, count: insertedCount };
+    }
+    insertedCount += batch.length;
+  }
+
+  revalidatePath('/schedule');
+  revalidatePath(`/classes/${classId}`);
+  return { success: true, count: insertedCount, message: `Đã sinh ${insertedCount} buổi học thành công.` };
+}

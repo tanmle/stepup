@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { addClassSession, updateClassSession, deleteClassSession } from '../classes/actions';
+import { addClassSession, updateClassSession, deleteClassSession, generateScheduleSessions } from '../classes/actions';
 
 const COLOR_MAP: Record<string, string> = {
   primary: 'bg-primary/10 text-primary border-primary/20',
@@ -36,6 +36,9 @@ interface Class {
   code: string;
   name: string;
   teacher_id: string;
+  schedule?: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 interface ScheduleClientProps {
@@ -54,6 +57,9 @@ export default function ScheduleClient({ sessions, teachers, classes, rooms }: S
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [creatingSessionDate, setCreatingSessionDate] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isAutoGenModalOpen, setIsAutoGenModalOpen] = useState(false);
+  const [autoGenClassId, setAutoGenClassId] = useState('');
+  const [autoGenResult, setAutoGenResult] = useState<string | null>(null);
 
   // Navigation functions
   const next = () => {
@@ -221,7 +227,7 @@ export default function ScheduleClient({ sessions, teachers, classes, rooms }: S
   );
 
   return (
-    <div className="flex flex-col gap-md pb-xl animate-fade-in h-[calc(100vh-100px)]">
+    <div className="flex flex-col gap-md pb-xl h-[calc(100vh-100px)]">
       {/* Header Controls */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-md mb-xs">
         <div>
@@ -264,6 +270,15 @@ export default function ScheduleClient({ sessions, teachers, classes, rooms }: S
               : `Tháng ${weekDays[0].getMonth() + 1}, ${weekDays[0].getFullYear()}`
             }
           </h2>
+          
+          {/* Auto Generate Button */}
+          <button
+            onClick={() => { setIsAutoGenModalOpen(true); setAutoGenResult(null); setAutoGenClassId(''); }}
+            className="btn-primary flex items-center gap-xs"
+          >
+            <span className="material-symbols-outlined text-[18px]">auto_fix_high</span>
+            Sinh lịch tự động
+          </button>
         </div>
       </div>
 
@@ -340,8 +355,8 @@ export default function ScheduleClient({ sessions, teachers, classes, rooms }: S
 
       {/* Edit Modal */}
       {editingSession && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-md animate-fade-in">
-          <div className="bg-surface rounded-2xl shadow-xl w-[450px] max-w-[95vw] overflow-hidden">
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-md animate-fade-in" onClick={() => setEditingSession(null)}>
+          <div className="bg-surface rounded-2xl shadow-xl w-[450px] max-w-[95vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="px-lg py-md border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
               <div>
                 <h3 className="text-title-lg font-bold text-on-background">Sửa buổi học</h3>
@@ -466,8 +481,8 @@ export default function ScheduleClient({ sessions, teachers, classes, rooms }: S
 
       {/* Create Modal */}
       {creatingSessionDate && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-md animate-fade-in">
-          <div className="bg-surface rounded-2xl shadow-xl w-[450px] max-w-[95vw] overflow-hidden">
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-md animate-fade-in" onClick={() => setCreatingSessionDate(null)}>
+          <div className="bg-surface rounded-2xl shadow-xl w-[450px] max-w-[95vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="px-lg py-md border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
               <div>
                 <h3 className="text-title-lg font-bold text-on-background">Thêm buổi học mới</h3>
@@ -581,6 +596,105 @@ export default function ScheduleClient({ sessions, teachers, classes, rooms }: S
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Auto Generate Modal */}
+      {isAutoGenModalOpen && (
+        <div className="fixed inset-0 bg-black/40 z-[9999] flex items-center justify-center p-md animate-fade-in" onClick={() => setIsAutoGenModalOpen(false)}>
+          <div className="bg-surface rounded-2xl shadow-xl w-[500px] max-w-[95vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-lg py-md border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
+              <div className="flex items-center gap-sm">
+                <span className="material-symbols-outlined text-primary text-[28px]">auto_fix_high</span>
+                <div>
+                  <h3 className="text-title-lg font-bold text-on-background">Sinh lịch tự động</h3>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsAutoGenModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container-high transition-colors text-on-surface-variant"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            
+            <div className="p-lg flex flex-col gap-md">
+              <div>
+                <label className="text-label-sm font-medium text-on-surface mb-xs block">Chọn lớp học</label>
+                <select
+                  className="input-field w-full font-bold text-primary"
+                  value={autoGenClassId}
+                  onChange={(e) => { setAutoGenClassId(e.target.value); setAutoGenResult(null); }}
+                >
+                  <option value="">-- Chọn lớp --</option>
+                  {classes.filter(c => c.schedule && c.start_date && c.end_date).map(c => (
+                    <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {autoGenClassId && (() => {
+                const cls = classes.find(c => c.id === autoGenClassId);
+                if (!cls) return null;
+                return (
+                  <div className="bg-surface-container-low rounded-xl p-md space-y-xs">
+                    <div className="flex justify-between text-body-md">
+                      <span className="text-on-surface-variant">Lịch học:</span>
+                      <span className="font-medium text-on-surface">{cls.schedule}</span>
+                    </div>
+                    <div className="flex justify-between text-body-md">
+                      <span className="text-on-surface-variant">Bắt đầu:</span>
+                      <span className="font-medium text-on-surface">{cls.start_date ? new Date(cls.start_date).toLocaleDateString('vi-VN') : 'Chưa có'}</span>
+                    </div>
+                    <div className="flex justify-between text-body-md">
+                      <span className="text-on-surface-variant">Kết thúc:</span>
+                      <span className="font-medium text-on-surface">{cls.end_date ? new Date(cls.end_date).toLocaleDateString('vi-VN') : 'Chưa có'}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {autoGenResult && (
+                <div className={`p-md rounded-xl text-body-md ${autoGenResult.startsWith('Đã sinh') ? 'bg-emerald-50 text-emerald-700' : autoGenResult.includes('Lỗi') ? 'bg-error-container text-on-error-container' : 'bg-amber-50 text-amber-700'}`}>
+                  <span className="material-symbols-outlined text-[18px] mr-xs align-middle">
+                    {autoGenResult.startsWith('Đã sinh') ? 'check_circle' : autoGenResult.includes('Lỗi') ? 'error' : 'info'}
+                  </span>
+                  {autoGenResult}
+                </div>
+              )}
+            </div>
+
+            <div className="px-lg py-md border-t border-outline-variant/10 flex items-center justify-end gap-sm bg-surface-container-low">
+              <button
+                type="button"
+                onClick={() => setIsAutoGenModalOpen(false)}
+                className="btn-secondary"
+                disabled={isPending}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={isPending || !autoGenClassId}
+                className="btn-primary"
+                onClick={() => {
+                  startTransition(async () => {
+                    try {
+                      const result = await generateScheduleSessions(autoGenClassId);
+                      setAutoGenResult(result.message || (result.success ? `Đã sinh ${result.count} buổi học` : result.error || 'Lỗi'));
+                      if (result.success && result.count && result.count > 0) {
+                        router.refresh();
+                      }
+                    } catch (err: any) {
+                      setAutoGenResult('Lỗi: ' + err.message);
+                    }
+                  });
+                }}
+              >
+                {isPending ? 'Đang sinh...' : 'Sinh lịch'}
+              </button>
+            </div>
           </div>
         </div>
       )}

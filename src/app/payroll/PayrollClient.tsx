@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import Link from 'next/link';
-import { addTeacherAttendance, deleteTeacherAttendance, generateSalaryRecord } from './actions';
+import { addTeacherAttendance, deleteTeacherAttendance, generateSalaryRecord, generateAttendanceFromSessions, updateTeacherAttendance } from './actions';
 
 interface PayrollClientProps {
   teachers: any[];
@@ -31,6 +30,8 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
   const [salaryNotes, setSalaryNotes] = useState('');
 
   const [isPending, startTransition] = useTransition();
+  const [autoGenResult, setAutoGenResult] = useState<string | null>(null);
+  const [editingAtt, setEditingAtt] = useState<any | null>(null);
 
   const selectedTeacher = teachers.find(t => t.id === selectedTeacherId);
   const isHourly = selectedTeacher?.salary_type === 'hourly';
@@ -138,7 +139,7 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
   };
 
   return (
-    <div className="flex flex-col gap-md pb-xl animate-fade-in">
+    <div className="flex flex-col gap-md pb-xl">
       <div>
         <h1 className="text-headline-lg text-on-background">Chấm công & Lương</h1>
         <p className="text-body-md text-on-surface-variant mt-xs">Quản lý chuyên cần và tính lương cho giáo viên</p>
@@ -212,10 +213,37 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
               Tháng {month + 1}/{year}
             </h2>
             <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setAutoGenResult(null);
+                  startTransition(async () => {
+                    try {
+                      const result = await generateAttendanceFromSessions(selectedTeacherId, month + 1, year);
+                      setAutoGenResult(result.message || (result.success ? `Đã sinh ${result.count} lượt chấm công` : result.error || 'Lỗi'));
+                    } catch (err: any) {
+                      setAutoGenResult('Lỗi: ' + err.message);
+                    }
+                  });
+                }}
+                disabled={isPending}
+                className="btn-primary py-1.5 px-3 text-label-sm flex items-center gap-xs"
+              >
+                <span className="material-symbols-outlined text-[16px]">auto_fix_high</span>
+                {isPending ? 'Đang sinh...' : 'Sinh chấm công từ lịch dạy'}
+              </button>
               <button onClick={prevMonth} className="btn-secondary py-1 px-2"><span className="material-symbols-outlined text-[18px]">chevron_left</span></button>
               <button onClick={nextMonth} className="btn-secondary py-1 px-2"><span className="material-symbols-outlined text-[18px]">chevron_right</span></button>
             </div>
           </div>
+
+          {autoGenResult && (
+            <div className={`mx-md mt-sm p-sm rounded-xl text-body-sm ${autoGenResult.startsWith('Đã sinh') ? 'bg-emerald-50 text-emerald-700' : autoGenResult.includes('Lỗi') ? 'bg-error-container text-on-error-container' : 'bg-amber-50 text-amber-700'}`}>
+              <span className="material-symbols-outlined text-[16px] mr-xs align-middle">
+                {autoGenResult.startsWith('Đã sinh') ? 'check_circle' : autoGenResult.includes('Lỗi') ? 'error' : 'info'}
+              </span>
+              {autoGenResult}
+            </div>
+          )}
           
           <div className="p-md overflow-x-auto">
             <div className="min-w-[700px] border border-outline-variant/20 rounded-xl overflow-hidden bg-surface">
@@ -261,12 +289,20 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
                                 <b>{att.type}</b>
                               )}
                             </div>
-                            <button 
-                              onClick={() => handleDeleteAttendance(att.id)}
-                              className="opacity-0 group-hover/item:opacity-100 text-error hover:text-error-600"
-                            >
-                              <span className="material-symbols-outlined text-[12px]">close</span>
-                            </button>
+                            <div className="flex gap-0.5">
+                              <button 
+                                onClick={() => setEditingAtt(att)}
+                                className="opacity-0 group-hover/item:opacity-100 text-primary hover:text-primary/80"
+                              >
+                                <span className="material-symbols-outlined text-[12px]">edit</span>
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteAttendance(att.id)}
+                                className="opacity-0 group-hover/item:opacity-100 text-error hover:text-error-600"
+                              >
+                                <span className="material-symbols-outlined text-[12px]">close</span>
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -397,10 +433,10 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
         </div>
       )}
 
-      {/* Generate Salary Modal */}
+      {/* Salary Calculation Modal */}
       {isSalaryModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-md bg-background/80 backdrop-blur-sm animate-fade-in">
-          <div className="card p-xl w-[500px] max-w-[90vw] shadow-elevation-3">
+          <div className="card p-xl w-[600px] max-w-[95vw] shadow-elevation-3">
             <div className="flex justify-between items-center mb-lg border-b border-outline-variant/20 pb-md">
               <h2 className="text-title-lg font-semibold text-on-background">Tính lương</h2>
               <button onClick={() => setIsSalaryModalOpen(false)} className="text-on-surface-variant hover:text-on-surface"><span className="material-symbols-outlined">close</span></button>
@@ -452,6 +488,68 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
                 <button type="button" onClick={() => setIsSalaryModalOpen(false)} className="btn-secondary">Hủy</button>
                 <button type="submit" disabled={isPending} className="btn-primary">
                   {isPending ? 'Đang tính...' : 'Tạo phiếu lương'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Attendance Modal */}
+      {editingAtt && (
+        <div 
+          style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '100vw', height: '100vh', zIndex: 99999, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+          onClick={() => setEditingAtt(null)}
+        >
+          <div className="bg-surface rounded-2xl shadow-xl w-[400px] max-w-[90vw] p-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-sm mb-lg">
+              <span className="material-symbols-outlined text-primary text-[24px]">edit_note</span>
+              <h2 className="text-title-lg font-semibold">Chỉnh sửa chấm công</h2>
+            </div>
+            <p className="text-body-sm text-on-surface-variant mb-md">Ngày: <strong>{new Date(editingAtt.date).toLocaleDateString('vi-VN')}</strong></p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                startTransition(async () => {
+                  try {
+                    await updateTeacherAttendance(editingAtt.id, formData);
+                    setEditingAtt(null);
+                  } catch (err: any) {
+                    alert('Lỗi: ' + err.message);
+                  }
+                });
+              }}
+              className="space-y-md"
+            >
+              <div className="grid grid-cols-2 gap-md">
+                <div>
+                  <label className="text-label-sm font-medium text-on-surface mb-xs block">Giờ vào</label>
+                  <input type="time" name="checkIn" defaultValue={editingAtt.check_in?.substring(0, 5)} className="input-field w-full" />
+                </div>
+                <div>
+                  <label className="text-label-sm font-medium text-on-surface mb-xs block">Giờ ra</label>
+                  <input type="time" name="checkOut" defaultValue={editingAtt.check_out?.substring(0, 5)} className="input-field w-full" />
+                </div>
+              </div>
+              <div>
+                <label className="text-label-sm font-medium text-on-surface mb-xs block">Loại</label>
+                <select name="type" defaultValue={editingAtt.type} className="input-field w-full">
+                  <option value="Dạy học">Dạy học</option>
+                  <option value="Họp">Họp</option>
+                  <option value="Soạn bài">Soạn bài</option>
+                  <option value="Nghỉ phép">Nghỉ phép</option>
+                  <option value="Đi muộn">Đi muộn</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-label-sm font-medium text-on-surface mb-xs block">Ghi chú</label>
+                <input type="text" name="notes" defaultValue={editingAtt.note || ''} className="input-field w-full" placeholder="Ghi chú..." />
+              </div>
+              <div className="flex justify-end gap-sm pt-md border-t border-outline-variant/20">
+                <button type="button" onClick={() => setEditingAtt(null)} className="btn-secondary">Hủy</button>
+                <button type="submit" disabled={isPending} className="btn-primary">
+                  {isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
                 </button>
               </div>
             </form>

@@ -217,7 +217,13 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
                           {session.room}
                         </td>
                         <td className="px-md py-md">
-                          <StatusBadge status={session.status} />
+                          <StatusBadge 
+                            status={
+                              session.status === 'Chưa học' && new Date(`${session.session_date}T${session.start_time}`) <= new Date() 
+                                ? 'Đang học' 
+                                : session.status
+                            } 
+                          />
                         </td>
                         <td className="px-md py-md text-right">
                           <div className="flex items-center justify-end gap-sm">
@@ -298,7 +304,21 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
                   />
                 </div>
                 <div className="flex flex-col gap-xs">
-                  <label className="text-label-sm text-on-surface">Phòng học</label>
+                  <label className="text-label-sm text-on-surface">Trạng thái</label>
+                  <select
+                    name="status"
+                    defaultValue={editingSession ? editingSession.status : 'Chưa học'}
+                    className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50"
+                  >
+                    <option value="Chưa học">Chưa học</option>
+                    <option value="Đang học">Đang học</option>
+                    <option value="Đã học">Đã học</option>
+                    <option value="Đã hủy">Đã hủy</option>
+                    <option value="Học bù">Học bù</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-xs">
+                  <label className="text-label-sm text-on-surface">Phòng học (Tùy chọn)</label>
                   <select 
                     name="room" 
                     required 

@@ -174,6 +174,7 @@ export async function addClassSession(classId: string, formData: FormData) {
   const startTime = formData.get('startTime') as string;
   const endTime = formData.get('endTime') as string;
   const room = formData.get('room') as string;
+  const status = formData.get('status') as string || 'Chưa học';
 
   if (!sessionDateStr || !startTime || !endTime || !room) {
     throw new Error('Missing required fields');
@@ -216,7 +217,7 @@ export async function addClassSession(classId: string, formData: FormData) {
     start_time: startTime + ':00',
     end_time: endTime + ':00',
     room: room,
-    status: 'Chưa học'
+    status: status
   });
 
   if (error) {

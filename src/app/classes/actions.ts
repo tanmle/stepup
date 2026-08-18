@@ -12,6 +12,7 @@ export async function addClass(formData: FormData) {
   const level = formData.get('level') as string;
   const courseId = formData.get('courseId') as string;
   const teacherId = formData.get('teacherId') as string;
+  const roomId = formData.get('roomId') as string;
   const capacity = parseInt(formData.get('capacity') as string || '15', 10);
   const schedule = formData.get('schedule') as string;
   const startDate = formData.get('startDate') as string;
@@ -29,6 +30,7 @@ export async function addClass(formData: FormData) {
       level,
       course_id: courseId || null,
       teacher_id: teacherId || null,
+      room_id: roomId || null,
       capacity,
       schedule,
       start_date: startDate || null,
@@ -59,6 +61,7 @@ export async function updateClass(formData: FormData) {
   const level = formData.get('level') as string;
   const courseId = formData.get('courseId') as string;
   const teacherId = formData.get('teacherId') as string;
+  const roomId = formData.get('roomId') as string;
   const capacity = parseInt(formData.get('capacity') as string || '15', 10);
   const schedule = formData.get('schedule') as string;
   const startDate = formData.get('startDate') as string;
@@ -72,6 +75,7 @@ export async function updateClass(formData: FormData) {
     level,
     course_id: courseId || null,
     teacher_id: teacherId || null,
+    room_id: roomId || null,
     capacity,
     schedule,
     start_date: startDate || null,

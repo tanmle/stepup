@@ -126,7 +126,7 @@ export default function ClassesClient({ initialClasses }: ClassesClientProps) {
           <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-outline-variant/20 bg-surface-container-low/50">
-                {['Tên lớp', 'Giáo viên', 'Chương trình', 'Sĩ số', 'Lịch học', 'Ngày bắt đầu', 'Ngày kết thúc', 'Trạng thái', ''].map((h) => (
+                {['Tên lớp', 'Giáo viên', 'Chương trình', 'Phòng học', 'Sĩ số', 'Lịch học', 'Ngày bắt đầu', 'Ngày kết thúc', 'Trạng thái', ''].map((h) => (
                   <th key={h} className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
                     {h}
                   </th>
@@ -153,6 +153,7 @@ export default function ClassesClient({ initialClasses }: ClassesClientProps) {
                     </div>
                   </td>
                   <td className="px-md py-md text-body-md text-on-surface-variant">{c.program}</td>
+                  <td className="px-md py-md text-body-md text-on-surface-variant">{c.roomName}</td>
                   <td className="px-md py-md">
                     <p className="text-body-md font-semibold text-on-background">{c.enrolled}/{c.capacity}</p>
                     <div className="progress-bar mt-xs w-16">

@@ -1,0 +1,1 @@
+ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS room_id UUID REFERENCES public.rooms(id) ON DELETE SET NULL;

@@ -20,10 +20,12 @@ export default async function EditClassPage({ params }: { params: Promise<{ id: 
   // Fetch teachers and courses for dropdowns
   const [
     { data: teachers },
-    { data: courses }
+    { data: courses },
+    { data: rooms }
   ] = await Promise.all([
     supabase.from('teachers').select('id, full_name, code').eq('status', 'Đang làm việc'),
-    supabase.from('courses').select('id, name, program, level')
+    supabase.from('courses').select('id, name, program, level'),
+    supabase.from('rooms').select('id, name, capacity, status').eq('status', 'Sẵn sàng').order('name', { ascending: true })
   ]);
 
   return (
@@ -31,6 +33,7 @@ export default async function EditClassPage({ params }: { params: Promise<{ id: 
       classData={cls}
       teachers={teachers || []}
       courses={courses || []}
+      rooms={rooms || []}
     />
   );
 }

@@ -9,9 +9,10 @@ import { COURSE_OPTIONS } from '@/lib/constants';
 interface NewClassClientProps {
   teachers: { id: string; full_name: string; code: string }[];
   courses: { id: string; name: string; program: string; level: string }[];
+  rooms: { id: string; name: string; capacity: number }[];
 }
 
-export default function NewClassClient({ teachers, courses }: NewClassClientProps) {
+export default function NewClassClient({ teachers, courses, rooms }: NewClassClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState({
@@ -19,6 +20,7 @@ export default function NewClassClient({ teachers, courses }: NewClassClientProp
     name: '',
     courseId: '',
     teacherId: '',
+    roomId: '',
     capacity: '15',
     scheduleDays: [] as string[],
     startTime: '',
@@ -146,6 +148,26 @@ export default function NewClassClient({ teachers, courses }: NewClassClientProp
           </div>
           <div>
             <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Phòng học
+            </label>
+            <select
+              value={form.roomId}
+              onChange={(e) => handleChange('roomId', e.target.value)}
+              className="input-field w-full"
+            >
+              <option value="">-- Chọn phòng học --</option>
+              {rooms.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name} (Sức chứa: {r.capacity})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
               Sĩ số tối đa
             </label>
             <input
@@ -153,6 +175,7 @@ export default function NewClassClient({ teachers, courses }: NewClassClientProp
               min="1"
               value={form.capacity}
               onChange={(e) => handleChange('capacity', e.target.value)}
+              className="input-field w-full"
             />
           </div>
         </div>

@@ -9,9 +9,10 @@ interface EditClassClientProps {
   classData: any;
   teachers: { id: string; full_name: string; code: string }[];
   courses: { id: string; name: string; program: string; level: string }[];
+  rooms: { id: string; name: string; capacity: number }[];
 }
 
-export default function EditClassClient({ classData, teachers, courses }: EditClassClientProps) {
+export default function EditClassClient({ classData, teachers, courses, rooms }: EditClassClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -40,6 +41,7 @@ export default function EditClassClient({ classData, teachers, courses }: EditCl
     name: classData.name || '',
     courseId: classData.course_id || '',
     teacherId: classData.teacher_id || '',
+    roomId: classData.room_id || '',
     capacity: classData.capacity?.toString() || '15',
     scheduleDays: days,
     startTime: start,
@@ -171,6 +173,23 @@ export default function EditClassClient({ classData, teachers, courses }: EditCl
               {teachers.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.full_name} ({t.code})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Phòng học
+            </label>
+            <select
+              value={form.roomId}
+              onChange={(e) => handleChange('roomId', e.target.value)}
+              className="input-field w-full"
+            >
+              <option value="">-- Chọn phòng học --</option>
+              {rooms.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name} (Sức chứa: {r.capacity})
                 </option>
               ))}
             </select>

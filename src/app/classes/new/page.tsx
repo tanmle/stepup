@@ -8,21 +8,15 @@ export const metadata = {
 export default async function NewClassPage() {
   const supabase = await createClient();
 
-  // Fetch teachers for the dropdown
-  const { data: teachers, error } = await supabase
-    .from('teachers')
-    .select('id, full_name, code')
-    .order('full_name', { ascending: true });
+  const [
+    { data: teachers },
+    { data: courses },
+    { data: rooms }
+  ] = await Promise.all([
+    supabase.from('teachers').select('id, full_name, code').order('full_name', { ascending: true }),
+    supabase.from('courses').select('id, name, program, level').eq('status', 'Đang hoạt động').order('name', { ascending: true }),
+    supabase.from('rooms').select('id, name, capacity, status').eq('status', 'Sẵn sàng').order('name', { ascending: true })
+  ]);
 
-  const { data: courses, error: coursesError } = await supabase
-    .from('courses')
-    .select('id, name, program, level')
-    .eq('status', 'Đang hoạt động')
-    .order('name', { ascending: true });
-
-  if (error) {
-    console.error('Error fetching teachers for class creation:', error);
-  }
-
-  return <NewClassClient teachers={teachers || []} courses={courses || []} />;
+  return <NewClassClient teachers={teachers || []} courses={courses || []} rooms={rooms || []} />;
 }

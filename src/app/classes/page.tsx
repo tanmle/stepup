@@ -14,6 +14,7 @@ export default async function ClassesPage() {
     .select(`
       *,
       teacher:teachers(full_name),
+      room:rooms(name),
       enrollments(status)
     `)
     .order('created_at', { ascending: false });
@@ -29,6 +30,7 @@ export default async function ClassesPage() {
     name: c.name,
     program: c.program,
     teacherName: c.teacher ? (c.teacher as any).full_name : 'Chưa phân công',
+    roomName: c.room ? (c.room as any).name : 'Chưa xếp phòng',
     capacity: c.capacity,
     enrolled: c.enrollments ? (c.enrollments as any[]).filter((e: any) => e.status === 'Đang học').length : 0,
     schedule: c.schedule,

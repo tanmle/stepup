@@ -153,3 +153,80 @@ export async function syncTuitionStatuses() {
 
   return { success: true, updatedCount: updates.length };
 }
+
+export async function generateMissingTuitions() {
+  const supabase = await createClient();
+
+  // 1. Get all enrollments with class and course details
+  const { data: enrollments, error: enrollError } = await supabase
+    .from('enrollments')
+    .select(`
+      student_id,
+      class_id,
+      classes (
+        course_id,
+        courses (
+          tuition_fee
+        )
+      )
+    `);
+
+  if (enrollError) {
+    console.error('Error fetching enrollments:', enrollError);
+    throw new Error('Không thể lấy danh sách ghi danh');
+  }
+
+  // 2. Get all existing tuition records
+  const { data: existingTuitions, error: tuitionError } = await supabase
+    .from('tuition_records')
+    .select('student_id, class_id');
+
+  if (tuitionError) {
+    console.error('Error fetching tuition records:', tuitionError);
+    throw new Error('Không thể lấy danh sách học phí');
+  }
+
+  // 3. Find missing ones
+  const existingSet = new Set(
+    existingTuitions.map((t: any) => `${t.student_id}-${t.class_id}`)
+  );
+
+  const missing = (enrollments || []).filter((e: any) => 
+    !existingSet.has(`${e.student_id}-${e.class_id}`)
+  );
+
+  if (missing.length === 0) {
+    return { success: true, count: 0 };
+  }
+
+  // 4. Prepare insert payload
+  const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  
+  const insertData = missing.map((e: any) => {
+    const fee = e.classes?.courses?.tuition_fee || 0;
+    return {
+      student_id: e.student_id,
+      class_id: e.class_id,
+      total_tuition: fee,
+      amount_paid: 0,
+      amount_owed: fee,
+      status: 'Chưa đến hạn',
+      due_date: dueDate,
+      discount: 0,
+      refund: 0
+    };
+  });
+
+  // 5. Insert
+  const { error: insertError } = await supabase
+    .from('tuition_records')
+    .insert(insertData);
+
+  if (insertError) {
+    console.error('Error inserting missing tuitions:', insertError);
+    throw new Error('Không thể tạo học phí');
+  }
+
+  revalidatePath('/tuition');
+  return { success: true, count: missing.length };
+}

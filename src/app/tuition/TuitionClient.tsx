@@ -6,7 +6,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import Pagination from '@/components/ui/Pagination';
 import CurrencyInput from '@/components/ui/CurrencyInput';
 import { formatVND } from '@/utils/format';
-import { collectTuition } from './actions';
+import { collectTuition, generateMissingTuitions } from './actions';
 
 const ITEMS_PER_PAGE = 10;
 const STATUS_FILTERS = ['Tất cả', 'Đã thu đủ', 'Sắp đến hạn', 'Quá hạn'];
@@ -63,6 +63,21 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
   const openReceiptModal = (record: any) => {
     setSelectedRecord(record);
     setReceiptModalOpen(true);
+  };
+
+  const handleGenerateMissingTuitions = () => {
+    startTransition(async () => {
+      try {
+        const res = await generateMissingTuitions();
+        if (res.count > 0) {
+          alert(`Đã sinh thành công ${res.count} bản ghi học phí bị thiếu.`);
+        } else {
+          alert('Không có bản ghi học phí nào bị thiếu.');
+        }
+      } catch (err: any) {
+        alert(err.message);
+      }
+    });
   };
 
   const handleCollect = (e: React.FormEvent) => {
@@ -207,6 +222,14 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
           <p className="text-body-md text-on-surface-variant mt-xs">Theo dõi và quản lý học phí học viên</p>
         </div>
         <div className="flex gap-sm">
+          <button 
+            className="btn-secondary" 
+            onClick={handleGenerateMissingTuitions}
+            disabled={isPending}
+          >
+            <span className="material-symbols-outlined text-[16px]">autorenew</span>
+            Sinh học phí
+          </button>
           <button className="btn-secondary" onClick={handleExportExcel}>
             <span className="material-symbols-outlined text-[16px]">table_view</span>
             Xuất Excel

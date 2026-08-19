@@ -6,8 +6,22 @@ import { revalidatePath } from 'next/cache';
 export async function addStudent(formData: FormData) {
   const supabase = await createClient();
 
-  // Generate random student code
-  const code = `HV-${new Date().getFullYear().toString().slice(2)}${Math.floor(1000 + Math.random() * 9000)}`;
+  // Generate sequential student code
+  const { data: maxStudent } = await supabase
+    .from('students')
+    .select('code')
+    .order('code', { ascending: false })
+    .limit(1)
+    .single();
+
+  let nextCodeNum = 1;
+  if (maxStudent && maxStudent.code) {
+    const parsed = parseInt(maxStudent.code, 10);
+    if (!isNaN(parsed)) {
+      nextCodeNum = parsed + 1;
+    }
+  }
+  const code = String(nextCodeNum).padStart(6, '0');
 
   // Extract student data
   const fullName = formData.get('fullName') as string;

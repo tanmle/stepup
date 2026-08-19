@@ -63,6 +63,7 @@ export async function addTeacher(formData: FormData) {
       english_level: englishLevel || null,
       salary_type: salaryType || null,
       salary_rate: salaryRate || 0,
+      assistant_salary_rate: parseFloat((formData.get('assistantSalaryRate') as string) || '0'),
       status: 'Đang làm việc',
       rating: 5.0, // Default rating for new teachers
       avatar_initials: initials,
@@ -140,6 +141,7 @@ export async function updateTeacher(id: string, formData: FormData) {
       english_level: englishLevel || null,
       salary_type: salaryType || null,
       salary_rate: salaryRate || 0,
+      assistant_salary_rate: parseFloat((formData.get('assistantSalaryRate') as string) || '0'),
       status: status || 'Đang làm việc',
       certificates,
       specializations,

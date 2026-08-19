@@ -13,7 +13,8 @@ export default async function ClassesPage() {
     .from('classes')
     .select(`
       *,
-      teacher:teachers(full_name),
+      teacher:teachers!classes_teacher_id_fkey(full_name),
+      assistant:teachers!classes_assistant_teacher_id_fkey(full_name),
       room:rooms(name),
       enrollments(status)
     `)

@@ -30,6 +30,7 @@ export async function addClass(formData: FormData) {
       level,
       course_id: courseId || null,
       teacher_id: teacherId || null,
+      assistant_teacher_id: (formData.get('assistantTeacherId') as string) || null,
       room_id: roomId || null,
       capacity,
       schedule,
@@ -75,6 +76,7 @@ export async function updateClass(formData: FormData) {
     level,
     course_id: courseId || null,
     teacher_id: teacherId || null,
+    assistant_teacher_id: (formData.get('assistantTeacherId') as string) || null,
     room_id: roomId || null,
     capacity,
     schedule,
@@ -313,7 +315,7 @@ export async function generateScheduleSessions(classId: string) {
   // 1. Fetch class info
   const { data: cls, error: clsError } = await supabase
     .from('classes')
-    .select('schedule, start_date, end_date, teacher_id, room_id, rooms(name)')
+    .select('schedule, start_date, end_date, teacher_id, assistant_teacher_id, room_id, rooms(name)')
     .eq('id', classId)
     .single();
 
@@ -375,6 +377,7 @@ export async function generateScheduleSessions(classId: string) {
         sessionsToInsert.push({
           class_id: classId,
           teacher_id: cls.teacher_id || null,
+          assistant_teacher_id: cls.assistant_teacher_id || null,
           session_date: dateStr,
           start_time: startTime + ':00',
           end_time: endTime + ':00',

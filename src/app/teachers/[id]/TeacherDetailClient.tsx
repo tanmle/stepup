@@ -703,10 +703,18 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
             <div className="animate-fade-in space-y-lg">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
                 <div className="bg-primary/5 border border-primary/20 rounded-xl p-md flex flex-col justify-center">
-                  <span className="text-label-sm text-primary uppercase font-medium">Hình thức & Mức lương</span>
-                  <div className="mt-sm flex items-end gap-sm">
-                    <span className="text-headline-md font-bold text-on-surface">{formatVND(teacher.salaryRate)}</span>
-                    <span className="text-on-surface-variant mb-1">/ {teacher.salaryType === 'fixed' ? 'tháng' : 'giờ'}</span>
+                  <span className="text-label-sm text-primary uppercase font-medium">Mức lương</span>
+                  <div className="mt-sm flex flex-col gap-1">
+                    <div className="flex items-end gap-sm">
+                      <span className="text-body-sm text-on-surface-variant w-24">Dạy chính:</span>
+                      <span className="text-title-md font-bold text-on-surface">{formatVND(teacher.salaryRate)}</span>
+                      <span className="text-on-surface-variant mb-0.5 text-body-sm">/ {teacher.salaryType === 'fixed' ? 'tháng' : 'giờ'}</span>
+                    </div>
+                    <div className="flex items-end gap-sm">
+                      <span className="text-body-sm text-on-surface-variant w-24">Trợ giảng:</span>
+                      <span className="text-title-md font-bold text-on-surface">{formatVND(teacher.assistantSalaryRate)}</span>
+                      <span className="text-on-surface-variant mb-0.5 text-body-sm">/ giờ</span>
+                    </div>
                   </div>
                 </div>
 

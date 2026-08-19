@@ -24,7 +24,7 @@ export default async function StudentDetailPage({ params }: Props) {
       ),
       enrollments(
         status, sessions_completed, sessions_total, attendance_rate,
-        classes(id, name, code, schedule, teachers(full_name))
+        classes(id, name, code, schedule, teacher:teachers!classes_teacher_id_fkey(full_name))
       )
     `)
     .eq('id', id)
@@ -91,7 +91,7 @@ export default async function StudentDetailPage({ params }: Props) {
       className: e.classes.name,
       classCode: e.classes.code,
       schedule: e.classes.schedule,
-      teacher: e.classes.teachers?.full_name || 'Chưa xếp',
+      teacher: e.classes.teacher?.full_name || 'Chưa xếp',
       sessionsCompleted: e.sessions_completed,
       sessionsTotal: e.sessions_total,
       attendanceRate: e.attendance_rate,

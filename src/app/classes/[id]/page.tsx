@@ -13,7 +13,8 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
     .from('classes')
     .select(`
       *,
-      teachers(full_name)
+      teacher:teachers!classes_teacher_id_fkey(full_name),
+      assistant:teachers!classes_assistant_teacher_id_fkey(full_name)
     `)
     .eq('id', id)
     .single();

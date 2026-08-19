@@ -20,6 +20,7 @@ export default function NewClassClient({ teachers, courses, rooms }: NewClassCli
     name: '',
     courseId: '',
     teacherId: '',
+    assistantTeacherId: '',
     roomId: '',
     capacity: '15',
     scheduleDays: [] as string[],
@@ -146,6 +147,26 @@ export default function NewClassClient({ teachers, courses, rooms }: NewClassCli
               ))}
             </select>
           </div>
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Trợ giảng
+            </label>
+            <select
+              value={form.assistantTeacherId}
+              onChange={(e) => handleChange('assistantTeacherId', e.target.value)}
+              className="input-field w-full"
+            >
+              <option value="">-- Chọn trợ giảng --</option>
+              {teachers.filter(t => t.id !== form.teacherId).map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.full_name} ({t.code})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <div>
             <label className="text-label-sm text-on-surface-variant mb-xs block">
               Phòng học

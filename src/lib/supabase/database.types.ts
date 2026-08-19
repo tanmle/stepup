@@ -77,6 +77,7 @@ export interface Database {
           certificates: Json | null
           specializations: Json | null
           teaching_strengths: Json | null
+          assistant_salary_rate: number | null
           status: string | null
           years_of_experience: number | null
           rating: number | null
@@ -97,6 +98,7 @@ export interface Database {
           certificates?: Json | null
           specializations?: Json | null
           teaching_strengths?: Json | null
+          assistant_salary_rate?: number | null
           status?: string | null
           years_of_experience?: number | null
           rating?: number | null
@@ -117,6 +119,7 @@ export interface Database {
           certificates?: Json | null
           specializations?: Json | null
           teaching_strengths?: Json | null
+          assistant_salary_rate?: number | null
           status?: string | null
           years_of_experience?: number | null
           rating?: number | null
@@ -134,10 +137,12 @@ export interface Database {
           name: string
           program: string | null
           teacher_id: string | null
+          assistant_teacher_id: string | null
           capacity: number | null
           schedule: string | null
           start_date: string | null
           status: string | null
+          course_id: string | null
           color_key: string | null
           created_at: string | null
           updated_at: string | null
@@ -148,10 +153,12 @@ export interface Database {
           name: string
           program?: string | null
           teacher_id?: string | null
+          assistant_teacher_id?: string | null
           capacity?: number | null
           schedule?: string | null
           start_date?: string | null
           status?: string | null
+          course_id?: string | null
           color_key?: string | null
           created_at?: string | null
           updated_at?: string | null
@@ -162,10 +169,12 @@ export interface Database {
           name?: string
           program?: string | null
           teacher_id?: string | null
+          assistant_teacher_id?: string | null
           capacity?: number | null
           schedule?: string | null
           start_date?: string | null
           status?: string | null
+          course_id?: string | null
           color_key?: string | null
           created_at?: string | null
           updated_at?: string | null

@@ -25,6 +25,7 @@ export default function NewTeacherPage() {
     englishLevel: '',
     salaryType: '',
     salaryRate: '',
+    assistantSalaryRate: '',
   });
 
   const handleChange = (field: string, value: string) => {
@@ -280,12 +281,23 @@ export default function NewTeacherPage() {
             </div>
             <div>
               <label className="text-label-sm text-on-surface-variant mb-xs block">
-                Mức lương
+                Mức lương dạy chính
               </label>
               <CurrencyInput
                 value={form.salaryRate}
                 onChange={(val) => handleChange('salaryRate', val)}
                 placeholder="Ví dụ: 150.000"
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="text-label-sm text-on-surface-variant mb-xs block">
+                Mức lương trợ giảng
+              </label>
+              <CurrencyInput
+                value={form.assistantSalaryRate}
+                onChange={(val) => handleChange('assistantSalaryRate', val)}
+                placeholder="Ví dụ: 80.000"
                 className="w-full"
               />
             </div>

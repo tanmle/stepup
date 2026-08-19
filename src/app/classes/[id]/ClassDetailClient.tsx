@@ -99,10 +99,13 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
               Chỉnh sửa
             </Link>
           </div>
-          <div className="flex items-center gap-md mt-xs text-body-md text-on-surface-variant">
+          <div className="flex items-center gap-md mt-xs text-body-md text-on-surface-variant flex-wrap">
             <span className="flex items-center gap-xs"><span className="material-symbols-outlined text-[16px]">tag</span>{cls.code}</span>
-            <span className="flex items-center gap-xs"><span className="material-symbols-outlined text-[16px]">menu_book</span>{cls.program} ({cls.level})</span>
-            <span className="flex items-center gap-xs"><span className="material-symbols-outlined text-[16px]">person</span>{cls.teachers?.full_name || 'Chưa phân công'}</span>
+            <span className="flex items-center gap-xs"><span className="material-symbols-outlined text-[16px]">menu_book</span>{cls.program}</span>
+            <span className="flex items-center gap-xs"><span className="material-symbols-outlined text-[16px]">person</span>GV: {cls.teacher?.full_name || 'Chưa phân công'}</span>
+            {cls.assistant?.full_name && (
+              <span className="flex items-center gap-xs"><span className="material-symbols-outlined text-[16px]">supervisor_account</span>Trợ giảng: {cls.assistant.full_name}</span>
+            )}
           </div>
         </div>
       </div>

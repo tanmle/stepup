@@ -41,6 +41,7 @@ export default function EditClassClient({ classData, teachers, courses, rooms }:
     name: classData.name || '',
     courseId: classData.course_id || '',
     teacherId: classData.teacher_id || '',
+    assistantTeacherId: classData.assistant_teacher_id || '',
     roomId: classData.room_id || '',
     capacity: classData.capacity?.toString() || '15',
     scheduleDays: days,
@@ -171,6 +172,26 @@ export default function EditClassClient({ classData, teachers, courses, rooms }:
             >
               <option value="">-- Chưa xếp giáo viên --</option>
               {teachers.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.full_name} ({t.code})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+          <div>
+            <label className="text-label-sm text-on-surface-variant mb-xs block">
+              Trợ giảng
+            </label>
+            <select
+              value={form.assistantTeacherId}
+              onChange={(e) => handleChange('assistantTeacherId', e.target.value)}
+              className="input-field w-full"
+            >
+              <option value="">-- Chưa xếp trợ giảng --</option>
+              {teachers.filter(t => t.id !== form.teacherId).map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.full_name} ({t.code})
                 </option>

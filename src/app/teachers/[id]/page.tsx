@@ -31,7 +31,8 @@ export default async function TeacherDetailPage({ params }: Props) {
     { data: evaluationsData },
     { data: salaryData },
     { data: documentsData },
-    { data: sessionsData }
+    { data: sessionsData },
+    { data: classesData }
   ] = await Promise.all([
     supabase.from('teacher_attendance').select('*').eq('teacher_id', id).order('date', { ascending: false }),
     supabase.from('teacher_evaluations').select('*').eq('teacher_id', id).order('evaluation_date', { ascending: false }),
@@ -41,6 +42,10 @@ export default async function TeacherDetailPage({ params }: Props) {
       session_date,
       start_time,
       classes (code, capacity, color_key, enrollments(status))
+    `).eq('teacher_id', id),
+    supabase.from('classes').select(`
+      *,
+      enrollments(status)
     `).eq('teacher_id', id)
   ]);
 
@@ -100,30 +105,17 @@ export default async function TeacherDetailPage({ params }: Props) {
       colorKey: s.classes?.color_key || 'primary',
       enrolled: s.classes?.enrollments ? s.classes.enrollments.filter((e: any) => e.status === 'Đang học').length : 0,
     })),
-    currentClasses: [
-      {
-        code: 'IEL-102',
-        name: 'IELTS Intensive',
-        program: 'IELTS',
-        enrolled: 15,
-        capacity: 15,
-        schedule: 'T2, T4 (18:00)',
-        startDate: '10/01/2024',
-        status: 'Đang diễn ra',
-        colorKey: 'primary'
-      },
-      {
-        code: 'COM-05',
-        name: 'Giao tiếp Nâng cao',
-        program: 'Giao tiếp',
-        enrolled: 8,
-        capacity: 12,
-        schedule: 'T7, CN (08:00)',
-        startDate: '15/01/2024',
-        status: 'Sắp khai giảng',
-        colorKey: 'tertiary'
-      }
-    ],
+    currentClasses: (classesData || []).map((c: any) => ({
+      code: c.code,
+      name: c.name,
+      program: c.program,
+      enrolled: c.enrollments ? c.enrollments.filter((e: any) => e.status === 'Đang học').length : 0,
+      capacity: c.capacity,
+      schedule: c.schedule,
+      startDate: c.start_date ? new Date(c.start_date).toLocaleDateString('vi-VN') : '',
+      status: c.status,
+      colorKey: c.color_key
+    })),
   };
 
   return <TeacherDetailClient teacher={formattedTeacher} />;

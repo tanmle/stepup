@@ -21,7 +21,7 @@ const TABS = [
 ];
 
 const SCHEDULE_DAYS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
-const SCHEDULE_SLOTS = ['Sáng (08:00–12:00)', 'Chiều (13:30–17:30)', 'Tối (18:00–21:30)'];
+const SCHEDULE_SLOTS = ['08:00–12:00', '13:30–17:30', '18:00–21:30'];
 
 const COLOR_MAP: Record<string, string> = {
   primary: 'bg-primary/10 text-primary border-primary/20',
@@ -553,7 +553,7 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                 <table className="w-full border-collapse min-w-[800px]">
                   <thead>
                     <tr>
-                      <th className="w-36 text-left text-label-sm text-on-surface-variant py-sm px-md">Ca / Ngày</th>
+                      <th className="w-36 text-left text-label-sm text-on-surface-variant py-sm px-md">Giờ</th>
                       {SCHEDULE_DAYS.map((d) => (
                         <th key={d} className="text-center text-label-sm text-on-surface-variant py-sm px-sm">{d}</th>
                       ))}
@@ -563,8 +563,7 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                     {SCHEDULE_SLOTS.map((slot, si) => (
                       <tr key={slot} className="border-t border-outline-variant/10">
                         <td className="py-sm px-md">
-                          <p className="text-body-md text-on-surface">{slot.split(' ')[0]}</p>
-                          <p className="text-label-sm text-on-surface-variant">{slot.split(' ').slice(1).join(' ')}</p>
+                          <p className="text-body-md text-on-surface">{slot}</p>
                         </td>
                         {SCHEDULE_DAYS.map((_, di) => {
                           const date = new Date();

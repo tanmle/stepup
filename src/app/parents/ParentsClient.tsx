@@ -44,8 +44,8 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
   const filtered = useMemo(() => {
     return parentsList.filter((p: any) => {
       const matchSearch = !search ||
-        p.fullName.toLowerCase().includes(search.toLowerCase()) ||
-        p.phone.includes(search);
+        (p.fullName || '').toLowerCase().includes(search.toLowerCase()) ||
+        (p.phone || '').includes(search);
       const matchStatus = !filterStatus || p.crmStatus === filterStatus;
       const matchSource = !filterSource || p.source === filterSource;
       

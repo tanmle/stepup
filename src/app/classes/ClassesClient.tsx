@@ -53,9 +53,9 @@ export default function ClassesClient({ initialClasses }: ClassesClientProps) {
     return classesList.filter((c: any) => {
       const matchSearch =
         !search ||
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.code.toLowerCase().includes(search.toLowerCase()) ||
-        c.teacherName.toLowerCase().includes(search.toLowerCase());
+        (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
+        (c.code || '').toLowerCase().includes(search.toLowerCase()) ||
+        (c.teacherName || '').toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === 'Tất cả' || c.status === statusFilter;
       return matchSearch && matchStatus;
     });

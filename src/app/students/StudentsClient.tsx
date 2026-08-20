@@ -50,9 +50,9 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
     return studentsList.filter((s) => {
       const matchSearch =
         !search ||
-        s.fullName.toLowerCase().includes(search.toLowerCase()) ||
-        s.code.toLowerCase().includes(search.toLowerCase()) ||
-        s.phone.includes(search);
+        (s.fullName || '').toLowerCase().includes(search.toLowerCase()) ||
+        (s.code || '').toLowerCase().includes(search.toLowerCase()) ||
+        (s.phone || '').includes(search);
       const matchStatus = statusFilter === 'Tất cả' || s.status === statusFilter;
       return matchSearch && matchStatus;
     });
@@ -78,7 +78,7 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
           <h1 className="text-headline-lg text-on-background">Quản lý học viên</h1>
           <p className="text-body-md text-on-surface-variant mt-xs">
             Tổng cộng{' '}
-            <span className="font-semibold text-primary">{studentsList.length.toLocaleString('vi-VN')}</span> học viên
+            <span className="font-semibold text-primary">{studentsList.length}</span> học viên
           </p>
         </div>
         <div className="flex gap-sm">

@@ -69,9 +69,9 @@ export default function TeachersClient({ initialTeachers }: TeachersClientProps)
     return teachersList.filter((t: any) => {
       const matchSearch =
         !search ||
-        t.fullName.toLowerCase().includes(search.toLowerCase()) ||
-        t.code.toLowerCase().includes(search.toLowerCase()) ||
-        t.specializations.some((s: any) => s.toLowerCase().includes(search.toLowerCase()));
+        (t.fullName || '').toLowerCase().includes(search.toLowerCase()) ||
+        (t.code || '').toLowerCase().includes(search.toLowerCase()) ||
+        (t.specializations || []).some((s: any) => (s || '').toLowerCase().includes(search.toLowerCase()));
       const matchStatus = statusFilter === 'Tất cả' || t.status === statusFilter;
       return matchSearch && matchStatus;
     });

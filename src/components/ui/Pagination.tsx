@@ -40,7 +40,7 @@ export default function Pagination({
         Hiển thị{' '}
         <span className="font-medium text-on-surface">{start}–{end}</span>
         {' '}trong tổng số{' '}
-        <span className="font-medium text-on-surface">{totalItems.toLocaleString('vi-VN')}</span>{' '}
+        <span className="font-medium text-on-surface">{totalItems}</span>{' '}
         {itemLabel}
       </span>
 

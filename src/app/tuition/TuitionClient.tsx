@@ -166,9 +166,9 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
     return initialRecords.filter((r) => {
       const matchSearch =
         !search ||
-        r.student.fullName.toLowerCase().includes(search.toLowerCase()) ||
-        (r.student.code && r.student.code.toLowerCase().includes(search.toLowerCase())) ||
-        r.className.toLowerCase().includes(search.toLowerCase());
+        (r.student.fullName || '').toLowerCase().includes(search.toLowerCase()) ||
+        (r.student.code || '').toLowerCase().includes(search.toLowerCase()) ||
+        (r.className || '').toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === 'Tất cả' || r.status === statusFilter;
       return matchSearch && matchStatus;
     });

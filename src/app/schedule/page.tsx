@@ -33,7 +33,8 @@ export default async function SchedulePage() {
         class_id,
         teacher_id,
         classes (code, name, color_key),
-        teachers (full_name)
+        teacher:teachers!class_sessions_teacher_id_fkey(full_name),
+        assistant:teachers!class_sessions_assistant_teacher_id_fkey(full_name)
       `)
       .gte('session_date', pastDate.toISOString().split('T')[0])
       .lte('session_date', futureDate.toISOString().split('T')[0])
@@ -59,7 +60,8 @@ export default async function SchedulePage() {
     classCode: (s.classes as any)?.code || 'N/A',
     className: (s.classes as any)?.name || 'N/A',
     colorKey: (s.classes as any)?.color_key || 'primary',
-    teacherName: (s.teachers as any)?.full_name || 'Chưa phân công',
+    teacherName: (s.teacher as any)?.full_name || 'Chưa phân công',
+    assistantName: (s.assistant as any)?.full_name || null,
   }));
 
   return <ScheduleClient sessions={formattedSessions} teachers={teachers || []} classes={classes || []} rooms={rooms || []} />;

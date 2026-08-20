@@ -13,8 +13,8 @@ export default function CoursesClient({ initialCourses }: { initialCourses: any[
   const [programFilter, setProgramFilter] = useState('All');
 
   const filteredCourses = initialCourses.filter(course => {
-    const matchesSearch = course.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          course.code.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (course.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (course.code || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || course.status === statusFilter;
     const matchesProgram = programFilter === 'All' || course.program === programFilter;
     return matchesSearch && matchesStatus && matchesProgram;

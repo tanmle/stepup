@@ -12,8 +12,14 @@ export async function getDashboardData() {
   // 3. Giáo viên
   const { count: totalTeachers } = await supabase.from('teachers').select('*', { count: 'exact', head: true });
 
-  // 4. Doanh thu & 6. Lợi nhuận
-  const { data: transactionsData } = await supabase.from('transactions').select('amount, type');
+  const { data: allTransactionsData } = await supabase.from('transactions').select('amount, type, id');
+  const dummyIds = [
+    'd1c13f2f-63d6-4316-a0a3-f04779ee06dc', 
+    '71833588-4461-4e16-8765-873a5c113797', 
+    '525c56ba-d28e-4e8a-a67b-2ebaf1b60749'
+  ];
+  const transactionsData = allTransactionsData?.filter(t => !dummyIds.includes(t.id));
+  
   let revenue = 0;
   let expense = 0;
   if (transactionsData) {
@@ -34,11 +40,12 @@ export async function getDashboardData() {
   }
 
   // Recent transactions
-  const { data: transactions } = await supabase
+  const { data: allRecentTransactions } = await supabase
     .from('transactions')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(5);
+    .limit(10);
+  const transactions = allRecentTransactions?.filter(t => !dummyIds.includes(t.id)).slice(0, 5) || [];
 
   // 7. Recent Enrollments
   const { data: enrollmentsData } = await supabase
@@ -73,8 +80,16 @@ export async function getDashboardData() {
 
 export async function getReportsData() {
   const supabase = await createClient();
-  const { data: transactions } = await supabase.from('transactions').select('amount, type, created_at, description');
+  const { data: allTransactions } = await supabase.from('transactions').select('amount, type, created_at, description, id');
   
+  // Filter out seed transactions that cannot be deleted due to RLS
+  const dummyIds = [
+    'd1c13f2f-63d6-4316-a0a3-f04779ee06dc', 
+    '71833588-4461-4e16-8765-873a5c113797', 
+    '525c56ba-d28e-4e8a-a67b-2ebaf1b60749'
+  ];
+  const transactions = allTransactions?.filter(t => !dummyIds.includes(t.id));
+
   let totalRevenue = 0;
   let totalCost = 0;
   
@@ -207,7 +222,7 @@ export async function getChartData() {
   const monthlyRevenue = Array.from({ length: 12 }, (_, i) => ({
     month: `T${i + 1}`,
     revenue: 0,
-    expense: 0
+    cost: 0
   }));
   
   const monthlyStudents = Array.from({ length: 12 }, (_, i) => ({
@@ -215,11 +230,18 @@ export async function getChartData() {
     count: 0
   }));
   
-  const { data: transactions } = await supabase
+  const dummyIds = [
+    'd1c13f2f-63d6-4316-a0a3-f04779ee06dc', 
+    '71833588-4461-4e16-8765-873a5c113797', 
+    '525c56ba-d28e-4e8a-a67b-2ebaf1b60749'
+  ];
+  const { data: allTransactionsChart } = await supabase
     .from('transactions')
-    .select('amount, type, created_at')
+    .select('amount, type, created_at, id')
     .gte('created_at', `${currentYear}-01-01T00:00:00.000Z`)
     .lte('created_at', `${currentYear}-12-31T23:59:59.999Z`);
+    
+  const transactions = allTransactionsChart?.filter(t => !dummyIds.includes(t.id));
     
   if (transactions) {
     transactions.forEach(t => {
@@ -229,7 +251,7 @@ export async function getChartData() {
       if (t.type === 'income') {
         monthlyRevenue[monthIndex].revenue += t.amount || 0;
       } else if (t.type === 'expense') {
-        monthlyRevenue[monthIndex].expense += t.amount || 0;
+        monthlyRevenue[monthIndex].cost += t.amount || 0;
       }
     });
   }

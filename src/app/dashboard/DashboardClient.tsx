@@ -28,23 +28,23 @@ interface DashboardClientProps {
 export default function DashboardClient({ data }: DashboardClientProps) {
   // Override KPIs with real data
   const kpis = DASHBOARD_KPIS.map(kpi => {
-    if (kpi.label === 'Học viên') return { ...kpi, value: data.totalStudents.toLocaleString('vi-VN') };
-    if (kpi.label === 'Đang học') return { ...kpi, value: data.activeStudents.toLocaleString('vi-VN') };
-    if (kpi.label === 'Giáo viên') return { ...kpi, value: data.totalTeachers.toString() };
-    if (kpi.label === 'Doanh thu') return { ...kpi, value: formatVND(data.revenue) };
-    if (kpi.label === 'Công nợ') return { ...kpi, value: formatVND(data.debt) };
-    if (kpi.label === 'Lợi nhuận') return { ...kpi, value: formatVND(data.profit) };
+    if (kpi.label === 'Học viên') return { ...kpi, value: data.totalStudents.toLocaleString('vi-VN'), trend: '', trendUp: false };
+    if (kpi.label === 'Đang học') return { ...kpi, value: data.activeStudents.toLocaleString('vi-VN'), trend: '', trendUp: false };
+    if (kpi.label === 'Giáo viên') return { ...kpi, value: data.totalTeachers.toString(), trend: '', trendUp: false };
+    if (kpi.label === 'Doanh thu') return { ...kpi, value: formatVND(data.revenue), trend: '', trendUp: false };
+    if (kpi.label === 'Công nợ') return { ...kpi, value: formatVND(data.debt), trend: '', trendUp: false };
+    if (kpi.label === 'Lợi nhuận') return { ...kpi, value: formatVND(data.profit), trend: '', trendUp: false };
     return kpi;
   });
 
-  const recentTransactions = data.transactions.length > 0 ? data.transactions.map(tx => ({
+  const recentTransactions = data.transactions.map(tx => ({
     id: tx.id,
     type: tx.type,
     description: tx.description || 'Giao dịch',
     amount: tx.amount,
     time: new Date(tx.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
     method: tx.payment_method || 'Chuyển khoản'
-  })) : RECENT_TRANSACTIONS;
+  }));
 
   return (
     <div className="flex flex-col gap-md pb-xl animate-fade-in">
@@ -125,7 +125,9 @@ export default function DashboardClient({ data }: DashboardClientProps) {
             </button>
           </div>
           <div className="flex flex-col">
-            {recentTransactions.map((tx) => (
+            {recentTransactions.length === 0 ? (
+               <div className="p-lg text-center text-on-surface-variant">Chưa có giao dịch nào</div>
+            ) : recentTransactions.map((tx) => (
               <div
                 key={tx.id}
                 className="flex items-center justify-between px-lg py-md hover:bg-primary/[0.03] transition-colors cursor-pointer border-b border-outline-variant/[0.07] last:border-b-0 group"

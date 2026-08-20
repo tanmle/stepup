@@ -175,21 +175,23 @@ export default function ReportsClient({ data }: ReportsClientProps) {
           </div>
           <div className="space-y-sm">
             {[
-              { label: 'Tổng doanh thu', value: formatVND(data.totalRevenue), change: '+21.4%', up: true },
-              { label: 'Tổng chi phí', value: formatVND(data.totalCost), change: '+3.4%', up: false },
-              { label: 'Lợi nhuận ròng', value: formatVND(data.netProfit), change: '+32.7%', up: true },
-              { label: 'Học phí tồn đọng', value: formatVND(data.tuitionDebt), change: '-3%', up: true },
+              { label: 'Tổng doanh thu', value: formatVND(data.totalRevenue), change: data.trends.revenueTrend, up: data.trends.revenueTrendUp },
+              { label: 'Tổng chi phí', value: formatVND(data.totalCost), change: data.trends.costTrend, up: !data.trends.costTrendUp },
+              { label: 'Lợi nhuận ròng', value: formatVND(data.netProfit), change: data.trends.profitTrend, up: data.trends.profitTrendUp },
+              { label: 'Học phí tồn đọng', value: formatVND(data.tuitionDebt), change: '', up: true },
             ].map((metric) => (
               <div key={metric.label} className="flex items-center justify-between p-sm bg-surface-container-low rounded-xl hover:bg-surface-container transition-colors">
                 <span className="text-body-md text-on-surface">{metric.label}</span>
                 <div className="flex items-center gap-md">
                   <span className="text-body-md font-semibold text-on-background">{metric.value}</span>
-                  <span className={`flex items-center gap-xs text-label-sm font-semibold ${metric.up ? 'text-emerald-600' : 'text-error'}`}>
-                    <span className="material-symbols-outlined text-[13px]">
-                      {metric.up ? 'arrow_upward' : 'arrow_downward'}
+                  {metric.change && (
+                    <span className={`flex items-center gap-xs text-label-sm font-semibold ${metric.up ? 'text-emerald-600' : 'text-error'}`}>
+                      <span className="material-symbols-outlined text-[13px]">
+                        {metric.up ? 'arrow_upward' : 'arrow_downward'}
+                      </span>
+                      {metric.change}
                     </span>
-                    {metric.change}
-                  </span>
+                  )}
                 </div>
               </div>
             ))}

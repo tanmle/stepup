@@ -34,6 +34,10 @@ export default async function ParentsPage() {
     email: p.email,
     job: p.job,
     notes: p.notes,
+    crmStatus: p.crm_status,
+    source: p.source,
+    company: p.company,
+    position: p.position,
     linkedStudentsCount: p.student_parents ? p.student_parents.length : 0,
     linkedStudents: p.student_parents ? p.student_parents.map((sp: any) => sp.students) : [],
   }));

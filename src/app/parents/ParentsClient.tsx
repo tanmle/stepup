@@ -46,7 +46,8 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
       const matchSearch = !search ||
         (p.fullName || '').toLowerCase().includes(search.toLowerCase()) ||
         (p.phone || '').includes(search);
-      const matchStatus = !filterStatus || p.crmStatus === filterStatus;
+      const actualStatus = p.crmStatus || 'Tiềm năng';
+      const matchStatus = !filterStatus || actualStatus === filterStatus;
       const matchSource = !filterSource || p.source === filterSource;
       
       return matchSearch && matchStatus && matchSource;

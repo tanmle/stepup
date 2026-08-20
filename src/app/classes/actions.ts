@@ -96,7 +96,7 @@ export async function updateClass(formData: FormData) {
   return { success: true };
 }
 
-export async function enrollStudentInClass(studentId: string, classId: string) {
+export async function enrollStudentInClass(studentId: string, classId: string, startDate?: string) {
   const supabase = await createClient();
 
   // Check if already enrolled
@@ -118,6 +118,7 @@ export async function enrollStudentInClass(studentId: string, classId: string) {
       class_id: classId,
       status: 'Đang học',
       enrollment_date: new Date().toISOString().split('T')[0],
+      start_date: startDate || new Date().toISOString().split('T')[0],
       sessions_completed: 0,
       attendance_rate: 100,
     }
@@ -407,4 +408,28 @@ export async function generateScheduleSessions(classId: string) {
   revalidatePath('/schedule');
   revalidatePath(`/classes/${classId}`);
   return { success: true, count: insertedCount, message: `Đã sinh ${insertedCount} buổi học thành công.` };
+}
+
+export async function updateEnrollmentDates(enrollmentId: string, startDate: string | null, endDate: string | null) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('enrollments')
+    .update({
+      start_date: startDate,
+      end_date: endDate,
+    })
+    .eq('id', enrollmentId);
+
+  if (error) {
+    console.error('Error updating enrollment dates:', error);
+    throw new Error('Không thể cập nhật ngày học');
+  }
+
+  const { data } = await supabase.from('enrollments').select('class_id, student_id').eq('id', enrollmentId).single();
+  if (data) {
+    revalidatePath(`/classes/${data.class_id}`);
+    revalidatePath(`/students/${data.student_id}`);
+  }
+  
+  return { success: true };
 }

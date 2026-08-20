@@ -160,7 +160,7 @@ export async function deleteStudent(id: string) {
   revalidatePath('/students');
 }
 
-export async function enrollStudent(studentId: string, classId: string) {
+export async function enrollStudent(studentId: string, classId: string, startDate?: string) {
   const supabase = await createClient();
 
   // 1. Insert enrollment
@@ -172,6 +172,8 @@ export async function enrollStudent(studentId: string, classId: string) {
       sessions_total: 24, // default mock value
       attendance_rate: 100,
       status: 'Đang học',
+      enrollment_date: new Date().toISOString().split('T')[0],
+      start_date: startDate || new Date().toISOString().split('T')[0],
     }
   ]);
 

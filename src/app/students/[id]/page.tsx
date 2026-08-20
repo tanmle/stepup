@@ -23,7 +23,7 @@ export default async function StudentDetailPage({ params }: Props) {
         parents(id, full_name, phone, email)
       ),
       enrollments(
-        status, sessions_completed, sessions_total, attendance_rate,
+        id, start_date, end_date, status, sessions_completed, sessions_total, attendance_rate,
         classes(id, name, code, schedule, teacher:teachers!classes_teacher_id_fkey(full_name))
       )
     `)
@@ -87,6 +87,7 @@ export default async function StudentDetailPage({ params }: Props) {
     })) : [],
     // Format enrollments
     enrolledCourses: s.enrollments ? s.enrollments.map((e: any) => ({
+      id: e.id,
       classId: e.classes.id,
       className: e.classes.name,
       classCode: e.classes.code,
@@ -96,8 +97,8 @@ export default async function StudentDetailPage({ params }: Props) {
       sessionsTotal: e.sessions_total,
       attendanceRate: e.attendance_rate,
       status: e.status,
-      startDate: e.classes.start_date,
-      endDate: e.classes.end_date,
+      startDate: e.start_date,
+      endDate: e.end_date,
     })) : [],
     payments: tuitionHistory.map((t: any) => ({
       id: t.id,

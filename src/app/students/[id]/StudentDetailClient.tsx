@@ -2,8 +2,10 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { deleteStudent, enrollStudent } from '../actions';
 import { useRouter } from 'next/navigation';
+import { updateStudent, addStudentNote, addTuitionRecord } from './actions';
+import { enrollStudentInClass, updateEnrollmentDates } from '@/app/classes/actions';
+import { deleteStudent, enrollStudent } from '../actions';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { formatVND } from '@/utils/format';
 
@@ -24,8 +26,25 @@ export default function StudentDetailClient({ student, availableClasses = [] }: 
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState('');
+  const [editingEnrollment, setEditingEnrollment] = useState<any>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  const handleUpdateEnrollment = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const sd = formData.get('startDate') as string;
+    const ed = formData.get('endDate') as string;
+    startTransition(async () => {
+      try {
+        await updateEnrollmentDates(editingEnrollment.id, sd || null, ed || null);
+        setEditingEnrollment(null);
+        router.refresh();
+      } catch (err: any) {
+        alert(err.message);
+      }
+    });
+  };
 
   const handleDelete = () => {
     startTransition(async () => {
@@ -231,8 +250,8 @@ export default function StudentDetailClient({ student, availableClasses = [] }: 
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-outline-variant/20">
-                            {['Tên lớp', 'Giáo viên', 'Ngày BĐ - KT', 'Tiến độ', 'Chuyên cần', 'Trạng thái'].map((h) => (
-                              <th key={h} className="text-left text-label-sm text-on-surface-variant py-sm px-md uppercase tracking-wider">
+                            {['Tên lớp', 'Giáo viên', 'Ngày BĐ - KT', 'Tiến độ', 'Chuyên cần', 'Trạng thái', 'Thao tác'].map((h, i) => (
+                              <th key={h} className={`text-label-sm text-on-surface-variant py-sm px-md uppercase tracking-wider ${i === 6 ? 'text-right' : 'text-left'}`}>
                                 {h}
                               </th>
                             ))}
@@ -275,6 +294,15 @@ export default function StudentDetailClient({ student, availableClasses = [] }: 
                               </td>
                               <td className="py-md px-md">
                                 <StatusBadge status={course.status} />
+                              </td>
+                              <td className="py-md px-md text-right">
+                                <button 
+                                  onClick={() => setEditingEnrollment(course)}
+                                  className="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant transition-colors"
+                                  title="Sửa ngày học"
+                                >
+                                  <span className="material-symbols-outlined text-[18px]">edit</span>
+                                </button>
                               </td>
                             </tr>
                           ))}
@@ -392,50 +420,109 @@ export default function StudentDetailClient({ student, availableClasses = [] }: 
             <h3 className="text-title-lg text-on-background mb-xs">Đăng ký lớp học mới</h3>
             <p className="text-body-md text-on-surface-variant mb-lg">Chọn lớp học để ghi danh cho học viên.</p>
             
-            <div className="mb-lg">
-              <label className="text-label-sm text-on-surface-variant mb-xs block">Lớp học</label>
-              <select 
-                value={selectedClassId} 
-                onChange={(e) => setSelectedClassId(e.target.value)}
-                className="input-field w-full"
-                disabled={isPending}
-              >
-                <option value="">-- Chọn lớp học --</option>
-                {availableClasses.map(cls => (
-                  <option key={cls.id} value={cls.id}>
-                    {cls.name} (Mã: {cls.code}) - {cls.price ? formatVND(cls.price) : 'Chưa có giá'}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (!selectedClassId) return alert('Vui lòng chọn lớp học');
+              const formData = new FormData(e.currentTarget);
+              const startDate = formData.get('enrollStartDate') as string;
+              startTransition(async () => {
+                try {
+                  await enrollStudent(student.id, selectedClassId, startDate || undefined);
+                  setShowEnrollModal(false);
+                  setSelectedClassId('');
+                } catch (err: any) {
+                  alert(err.message);
+                }
+              });
+            }}>
+              <div className="mb-lg">
+                <label className="text-label-sm text-on-surface-variant mb-xs block">Lớp học</label>
+                <select 
+                  name="classId"
+                  value={selectedClassId} 
+                  onChange={(e) => setSelectedClassId(e.target.value)}
+                  className="input-field w-full"
+                  disabled={isPending}
+                  required
+                >
+                  <option value="">-- Chọn lớp học --</option>
+                  {availableClasses.map(cls => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.name} (Mã: {cls.code}) - {cls.price ? formatVND(cls.price) : 'Chưa có giá'}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="flex items-center justify-end gap-sm">
-              <button
-                onClick={() => setShowEnrollModal(false)}
-                disabled={isPending}
-                className="btn-secondary"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={() => {
-                  if (!selectedClassId) return alert('Vui lòng chọn lớp học');
-                  startTransition(async () => {
-                    try {
-                      await enrollStudent(student.id, selectedClassId);
-                      setShowEnrollModal(false);
-                      setSelectedClassId('');
-                    } catch (e: any) {
-                      alert(e.message);
-                    }
-                  });
-                }}
-                disabled={isPending || !selectedClassId}
-                className="btn-primary"
-              >
-                {isPending ? 'Đang xử lý...' : 'Đăng ký ngay'}
+              <div className="mb-lg">
+                <label className="text-label-sm text-on-surface-variant mb-xs block">Ngày bắt đầu (không bắt buộc)</label>
+                <input 
+                  type="date" 
+                  name="enrollStartDate"
+                  className="input-field w-full"
+                  disabled={isPending}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-sm">
+                <button
+                  type="button"
+                  onClick={() => setShowEnrollModal(false)}
+                  disabled={isPending}
+                  className="btn-secondary"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={isPending || !selectedClassId}
+                  className="btn-primary"
+                >
+                  {isPending ? 'Đang xử lý...' : 'Đăng ký ngay'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Enrollment Modal */}
+      {editingEnrollment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-md bg-background/80 backdrop-blur-sm animate-fade-in">
+          <div className="card p-xl w-[400px] max-w-[90vw] shadow-elevation-3">
+            <div className="flex justify-between items-center mb-lg border-b border-outline-variant/20 pb-md">
+              <h2 className="text-title-lg font-semibold text-on-background">Sửa ngày học</h2>
+              <button onClick={() => setEditingEnrollment(null)} className="text-on-surface-variant hover:text-on-surface">
+                <span className="material-symbols-outlined">close</span>
               </button>
             </div>
+            <p className="text-body-md text-on-surface-variant mb-md">Lớp: <strong className="text-on-surface">{editingEnrollment.className}</strong></p>
+            <form onSubmit={handleUpdateEnrollment} className="space-y-md">
+              <div>
+                <label className="text-label-sm text-on-surface-variant mb-xs block">Ngày bắt đầu</label>
+                <input 
+                  type="date"
+                  name="startDate"
+                  defaultValue={editingEnrollment.startDate ? new Date(editingEnrollment.startDate).toISOString().split('T')[0] : ''}
+                  className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50"
+                />
+              </div>
+              <div>
+                <label className="text-label-sm text-on-surface-variant mb-xs block">Ngày kết thúc</label>
+                <input 
+                  type="date"
+                  name="endDate"
+                  defaultValue={editingEnrollment.endDate ? new Date(editingEnrollment.endDate).toISOString().split('T')[0] : ''}
+                  className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50"
+                />
+              </div>
+              <div className="flex justify-end gap-sm pt-md border-t border-outline-variant/20">
+                <button type="button" onClick={() => setEditingEnrollment(null)} className="btn-secondary">Hủy</button>
+                <button type="submit" disabled={isPending} className="btn-primary">
+                  {isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

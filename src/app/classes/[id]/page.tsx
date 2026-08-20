@@ -28,6 +28,8 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
     .from('enrollments')
     .select(`
       *,
+      start_date,
+      end_date,
       students(id, full_name, code, avatar_initials, avatar_color)
     `)
     .eq('class_id', id);

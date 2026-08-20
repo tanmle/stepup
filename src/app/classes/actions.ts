@@ -410,22 +410,48 @@ export async function generateScheduleSessions(classId: string) {
   return { success: true, count: insertedCount, message: `Đã sinh ${insertedCount} buổi học thành công.` };
 }
 
-export async function updateEnrollmentDates(enrollmentId: string, startDate: string | null, endDate: string | null) {
+export async function updateEnrollment(enrollmentId: string, startDate: string | null, endDate: string | null, status?: string) {
   const supabase = await createClient();
+  const updateData: any = {
+    start_date: startDate,
+    end_date: endDate,
+  };
+  if (status) updateData.status = status;
+
   const { error } = await supabase
     .from('enrollments')
-    .update({
-      start_date: startDate,
-      end_date: endDate,
-    })
+    .update(updateData)
     .eq('id', enrollmentId);
 
   if (error) {
-    console.error('Error updating enrollment dates:', error);
-    throw new Error('Không thể cập nhật ngày học');
+    console.error('Error updating enrollment:', error);
+    throw new Error('Không thể cập nhật học viên');
   }
 
   const { data } = await supabase.from('enrollments').select('class_id, student_id').eq('id', enrollmentId).single();
+  if (data) {
+    revalidatePath(`/classes/${data.class_id}`);
+    revalidatePath(`/students/${data.student_id}`);
+  }
+  
+  return { success: true };
+}
+
+export async function removeStudentFromClass(enrollmentId: string) {
+  const supabase = await createClient();
+  
+  const { data } = await supabase.from('enrollments').select('class_id, student_id').eq('id', enrollmentId).single();
+  
+  const { error } = await supabase
+    .from('enrollments')
+    .delete()
+    .eq('id', enrollmentId);
+
+  if (error) {
+    console.error('Error removing student from class:', error);
+    throw new Error('Không thể xóa học viên khỏi lớp');
+  }
+
   if (data) {
     revalidatePath(`/classes/${data.class_id}`);
     revalidatePath(`/students/${data.student_id}`);

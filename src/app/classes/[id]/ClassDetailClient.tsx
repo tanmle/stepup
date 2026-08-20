@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { addClassSession, updateClassSession, deleteClassSession, enrollStudentInClass, updateEnrollmentDates } from '../actions';
+import { addClassSession, updateClassSession, deleteClassSession, enrollStudentInClass, updateEnrollment, removeStudentFromClass } from '../actions';
 import StatusBadge from '@/components/ui/StatusBadge';
 
 interface ClassDetailClientProps {
@@ -70,10 +70,24 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
     const formData = new FormData(e.currentTarget);
     const sd = formData.get('startDate') as string;
     const ed = formData.get('endDate') as string;
+    const st = formData.get('status') as string;
     startTransition(async () => {
       try {
-        await updateEnrollmentDates(editingEnrollment.id, sd || null, ed || null);
+        await updateEnrollment(editingEnrollment.id, sd || null, ed || null, st || undefined);
         setEditingEnrollment(null);
+        router.refresh();
+      } catch (err: any) {
+        alert(err.message);
+      }
+    });
+  };
+
+  const handleRemoveStudent = async (enrollmentId: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa học viên khỏi lớp? Các dữ liệu về điểm danh và học phí của học viên ở lớp này cũng có thể bị ảnh hưởng.')) return;
+    
+    startTransition(async () => {
+      try {
+        await removeStudentFromClass(enrollmentId);
         router.refresh();
       } catch (err: any) {
         alert(err.message);
@@ -201,13 +215,22 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
                         <StatusBadge status={enr.status} />
                       </td>
                       <td className="px-md py-md text-right">
-                        <button 
-                          onClick={() => setEditingEnrollment(enr)}
-                          className="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant transition-colors"
-                          title="Sửa ngày học"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">edit</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-xs">
+                          <button 
+                            onClick={() => setEditingEnrollment(enr)}
+                            className="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant transition-colors"
+                            title="Sửa ngày học"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                          </button>
+                          <button 
+                            onClick={() => handleRemoveStudent(enr.id)}
+                            className="w-8 h-8 rounded-full hover:bg-rose-50 flex items-center justify-center text-rose-500 transition-colors"
+                            title="Xóa học viên khỏi lớp"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -475,6 +498,19 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
                   defaultValue={editingEnrollment.end_date ? new Date(editingEnrollment.end_date).toISOString().split('T')[0] : ''}
                   className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50"
                 />
+              </div>
+              <div>
+                <label className="text-label-sm text-on-surface-variant mb-xs block">Trạng thái</label>
+                <select
+                  name="status"
+                  defaultValue={editingEnrollment.status || 'Đang học'}
+                  className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50"
+                >
+                  <option value="Đang học">Đang học</option>
+                  <option value="Tạm nghỉ">Tạm nghỉ</option>
+                  <option value="Đã nghỉ">Nghỉ học (Đã nghỉ)</option>
+                  <option value="Hoàn thành">Hoàn thành</option>
+                </select>
               </div>
               <div className="flex justify-end gap-sm pt-md border-t border-outline-variant/20">
                 <button type="button" onClick={() => setEditingEnrollment(null)} className="btn-secondary">Hủy</button>

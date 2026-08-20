@@ -3,8 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { updateStudent, addStudentNote, addTuitionRecord } from './actions';
-import { enrollStudentInClass, updateEnrollmentDates } from '@/app/classes/actions';
+import { updateEnrollmentDates } from '@/app/classes/actions';
 import { deleteStudent, enrollStudent } from '../actions';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { formatVND } from '@/utils/format';

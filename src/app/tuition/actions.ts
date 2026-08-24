@@ -163,6 +163,7 @@ export async function generateMissingTuitions() {
     .select(`
       student_id,
       class_id,
+      end_date,
       classes (
         course_id,
         courses (
@@ -182,7 +183,7 @@ export async function generateMissingTuitions() {
   // 2. Get all existing tuition records
   const { data: existingTuitions, error: tuitionError } = await supabase
     .from('tuition_records')
-    .select('student_id, class_id, total_tuition, due_date')
+    .select('student_id, class_id, total_tuition, due_date, discount')
     .order('due_date', { ascending: true });
 
   if (tuitionError) {
@@ -208,42 +209,57 @@ export async function generateMissingTuitions() {
     if (records.length === 0) {
       // Completely missing, create for 1 month
       const dueDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-      insertData.push({
-        student_id: enr.student_id,
-        class_id: enr.class_id,
-        total_tuition: fee,
-        amount_paid: 0,
-        amount_owed: fee,
-        status: 'Chưa đến hạn',
-        due_date: dueDate,
-        discount: 0,
-        refund: 0
-      });
+      
+      // Do not create if already passed end_date significantly?
+      // Actually, just create it.
+      if (!enr.end_date || dueDate <= enr.end_date) {
+        insertData.push({
+          student_id: enr.student_id,
+          class_id: enr.class_id,
+          total_tuition: fee,
+          amount_paid: 0,
+          amount_owed: fee,
+          status: 'Chưa đến hạn',
+          due_date: dueDate,
+          discount: 0,
+          refund: 0
+        });
+      }
     } else {
       // Check if they need a new record
-      const totalBilled = records.reduce((sum, r) => sum + (r.total_tuition || 0), 0);
+      const latestRecord = records[records.length - 1];
+      const latestDueDate = new Date(latestRecord.due_date || now);
+      const nextDueDate = new Date(latestDueDate);
+      nextDueDate.setMonth(nextDueDate.getMonth() + 1); // always 1 month at a time now
       
-      if (totalBilled < maxTuition) {
-        const latestRecord = records[records.length - 1];
-        const monthsCovered = Math.round((latestRecord.total_tuition || 0) / fee) || 1;
+      if (nextDueDate <= threshold) {
+        // check if next due date is within their enrollment period
+        let shouldBill = true;
+        if (enr.end_date) {
+          const end = new Date(enr.end_date);
+          // if next due date is strictly after their end date, don't bill
+          if (nextDueDate > end) {
+            shouldBill = false;
+          }
+        }
         
-        const latestDueDate = new Date(latestRecord.due_date || now);
-        const nextDueDate = new Date(latestDueDate);
-        nextDueDate.setMonth(nextDueDate.getMonth() + monthsCovered);
-        
-        if (nextDueDate <= threshold) {
-          const remainingTuition = maxTuition - totalBilled;
-          const nextBillAmount = Math.min(fee, remainingTuition);
+        if (shouldBill) {
+          // Carry over discount percentage from latest record
+          let discountPercent = 0;
+          if (latestRecord.total_tuition && latestRecord.total_tuition > 0 && latestRecord.discount) {
+            discountPercent = latestRecord.discount / latestRecord.total_tuition;
+          }
+          const nextDiscount = fee * discountPercent;
           
           insertData.push({
             student_id: enr.student_id,
             class_id: enr.class_id,
-            total_tuition: nextBillAmount,
+            total_tuition: fee,
             amount_paid: 0,
-            amount_owed: nextBillAmount,
+            amount_owed: Math.max(0, fee - nextDiscount),
             status: 'Chưa đến hạn',
             due_date: nextDueDate.toISOString().split('T')[0],
-            discount: 0,
+            discount: nextDiscount,
             refund: 0
           });
         }

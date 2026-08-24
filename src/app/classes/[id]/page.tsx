@@ -38,15 +38,15 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
   // Fetch tuition records for this class to show in student list
   const { data: tuitions } = await supabase
     .from('tuition_records')
-    .select('student_id, amount_owed, amount_paid, total_tuition, discount')
+    .select('id, student_id, amount_owed, amount_paid, total_tuition, discount, refund, due_date, status')
     .eq('class_id', id);
 
   const enrollmentsWithTuition = (enrollments || []).map(enr => {
-    // Find the latest/relevant tuition record for this student in this class
-    const t = tuitions?.find(t => t.student_id === enr.student_id);
+    // Find all tuition records for this student in this class
+    const studentTuitions = tuitions?.filter(t => t.student_id === enr.student_id) || [];
     return {
       ...enr,
-      tuition: t || null
+      tuitions: studentTuitions
     };
   });
 

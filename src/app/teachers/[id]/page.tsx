@@ -35,7 +35,7 @@ export default async function TeacherDetailPage({ params }: Props) {
     { data: classesData }
   ] = await Promise.all([
     supabase.from('teacher_attendance').select('*').eq('teacher_id', id).order('date', { ascending: false }),
-    supabase.from('teacher_evaluations').select('*').eq('teacher_id', id).order('evaluation_date', { ascending: false }),
+    supabase.from('teacher_evaluations').select('*').eq('teacher_id', id).order('created_at', { ascending: false }),
     supabase.from('teacher_salary_records').select('*').eq('teacher_id', id).order('month', { ascending: false }),
     supabase.from('teacher_documents').select('*').eq('teacher_id', id),
     supabase.from('class_sessions').select(`

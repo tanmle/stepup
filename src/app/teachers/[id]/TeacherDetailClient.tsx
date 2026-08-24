@@ -218,8 +218,8 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
 
         await addTeacherEvaluation(formData);
         router.refresh();
-      } catch (error) {
-        alert('Lỗi khi thêm đánh giá (có thể đã tồn tại cho tháng này).');
+      } catch (error: any) {
+        alert('Lỗi khi thêm đánh giá (có thể đã tồn tại cho tháng này): ' + error.message);
       }
     });
   };
@@ -848,7 +848,7 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                     teacher.evaluations.map((ev: any, idx: number) => (
                       <div key={idx} className="border border-outline-variant/20 rounded-xl p-md">
                         <div className="flex justify-between items-center mb-sm">
-                          <span className="font-medium text-title-sm">Tháng {ev.evaluation_date}</span>
+                          <span className="font-medium text-title-sm">Tháng {ev.month}/{ev.year}</span>
                           <span className={`px-2 py-0.5 rounded text-xs font-bold ${getEvalColor(ev.total_score)}`}>
                             {getEvalClassification(ev.total_score)}
                           </span>
@@ -857,9 +857,9 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                           {ev.total_score}
                         </div>
                         <div className="text-xs text-on-surface-variant flex justify-between px-md">
-                          <span>CM: {ev.scores?.chuyenMon || 0}</span>
-                          <span>CC: {ev.scores?.chuyenCan || 0}</span>
-                          <span>HS: {ev.scores?.hoSo || 0}</span>
+                          <span>CM: {ev.expertise_score || 0}</span>
+                          <span>CC: {ev.attendance_score || 0}</span>
+                          <span>HS: {ev.lesson_plan_score || 0}</span>
                         </div>
                       </div>
                     ))

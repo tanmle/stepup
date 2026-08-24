@@ -180,10 +180,10 @@ export async function addTeacherEvaluation(formData: FormData) {
   // Remove total_score as it is a GENERATED ALWAYS column in DB
   delete data.total_score;
   
-  const { error } = await supabase.from('teacher_evaluations').insert([data]);
+  const { error } = await supabase.from('teacher_evaluations').upsert([data], { onConflict: 'teacher_id, month, year' });
   if (error) {
     console.error('Error adding teacher evaluation:', error);
-    throw new Error('Failed to create evaluation record');
+    throw new Error('Failed to create evaluation record: ' + error.message);
   }
   
   revalidatePath('/teachers');

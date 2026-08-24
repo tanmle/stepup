@@ -40,7 +40,15 @@ export default function StudentAttendanceClient({ classes }: StudentAttendanceCl
         setStudents(classStudents);
         setSessions(classSessions);
         if (classSessions.length > 0) {
-          setSelectedSessionId(classSessions[0].id);
+          const now = new Date();
+          const today = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+          const currentSession = classSessions.find((s: any) => s.session_date <= today);
+          
+          if (currentSession) {
+            setSelectedSessionId(currentSession.id);
+          } else {
+            setSelectedSessionId(classSessions[classSessions.length - 1].id);
+          }
         } else {
           setSelectedSessionId('');
         }
@@ -181,7 +189,7 @@ export default function StudentAttendanceClient({ classes }: StudentAttendanceCl
                 Danh sách lớp {selectedClass?.name}
               </h3>
               <p className="text-body-sm text-on-surface-variant mt-xs">
-                Sĩ số: {students.length} học viên | Ngày: {new Date(selectedSession?.date).toLocaleDateString('vi-VN')}
+                Sĩ số: {students.length} học viên | Ngày: {selectedSession ? new Date(selectedSession.session_date).toLocaleDateString('vi-VN') : ''}
               </p>
             </div>
             <div className="flex gap-sm">

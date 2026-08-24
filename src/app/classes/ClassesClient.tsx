@@ -167,7 +167,7 @@ export default function ClassesClient({ initialClasses }: ClassesClientProps) {
                     <StatusBadge status={c.status} />
                   </td>
                   <td className="px-md py-md">
-                    <div className="flex gap-xs md:opacity-0 md:group-hover:opacity-100 transition-opacity justify-end">
+                    <div className="flex gap-xs transition-opacity justify-end">
                       <button 
                         onClick={(e) => { e.stopPropagation(); router.push('/classes/' + c.id); }}
                         className="hidden md:inline-flex p-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors"

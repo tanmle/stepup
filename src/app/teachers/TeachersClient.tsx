@@ -283,7 +283,7 @@ export default function TeachersClient({ initialTeachers }: TeachersClientProps)
                     </div>
                   </td>
                   <td className="px-md py-md">
-                    <div className="flex gap-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-xs transition-opacity">
                       <Link href={`/teachers/${teacher.id}`} className="p-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors">
                         <span className="material-symbols-outlined text-[18px]">person</span>
                       </Link>

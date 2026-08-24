@@ -202,7 +202,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                     )}
                   </td>
                   <td className="px-md py-md">
-                    <div className="flex gap-xs opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                    <div className="flex gap-xs transition-opacity justify-end">
                       <Link href={`/parents/${p.id}`} className="p-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors">
                         <span className="material-symbols-outlined text-[18px]">edit</span>
                       </Link>

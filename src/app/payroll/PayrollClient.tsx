@@ -400,7 +400,7 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
                               ) : !isFuture ? (
                                 <span className="material-symbols-outlined text-[18px] text-emerald-600">check_circle</span>
                               ) : (
-                                <span className="material-symbols-outlined text-[18px] text-on-surface-variant/30 md:opacity-0 md:group-hover:opacity-100 transition-opacity">remove_circle_outline</span>
+                                <span className="material-symbols-outlined text-[18px] text-on-surface-variant/30 transition-opacity">remove_circle_outline</span>
                               )}
                             </div>
                           );
@@ -453,7 +453,7 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
                           </span>
                           <button 
                             onClick={(e) => { e.stopPropagation(); openAttModal(day); }}
-                            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-0.5 rounded-full text-primary hover:bg-primary/10"
+                            className="transition-opacity p-0.5 rounded-full text-primary hover:bg-primary/10"
                           >
                             <span className="material-symbols-outlined text-[16px]">add</span>
                           </button>
@@ -476,13 +476,13 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
                               <div className="flex gap-0.5">
                                 <button 
                                   onClick={(e) => { e.stopPropagation(); setEditingAtt(att); }}
-                                  className="opacity-100 md:opacity-0 md:group-hover/item:opacity-100 text-primary hover:text-primary/80"
+                                  className="text-primary hover:text-primary/80"
                                 >
                                   <span className="material-symbols-outlined text-[12px]">edit</span>
                                 </button>
                                 <button 
                                   onClick={(e) => { e.stopPropagation(); handleDeleteAttendance(att.id); }}
-                                  className="opacity-100 md:opacity-0 md:group-hover/item:opacity-100 text-error hover:text-error-600"
+                                  className="text-error hover:text-error-600"
                                 >
                                   <span className="material-symbols-outlined text-[12px]">close</span>
                                 </button>

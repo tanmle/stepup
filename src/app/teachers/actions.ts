@@ -45,8 +45,14 @@ export async function addTeacher(formData: FormData) {
   ];
   const color = colors[Math.floor(Math.random() * colors.length)];
 
+  const bankName = formData.get('bankName') as string;
+  const bankAccountNo = formData.get('bankAccountNo') as string;
+  const bankAccountName = formData.get('bankAccountName') as string;
+  const allowances = { bankName, bankAccountNo, bankAccountName };
+
   const { error } = await supabase.from('teachers').insert([
     {
+      allowances,
       code,
       full_name: fullName,
       email,
@@ -119,9 +125,22 @@ export async function updateTeacher(id: string, formData: FormData) {
   
   const certificatesRaw = formData.get('certificates') as string;
   const specializationsRaw = formData.get('specializations') as string;
+  const bankName = formData.get('bankName') as string;
+  const bankAccountNo = formData.get('bankAccountNo') as string;
+  const bankAccountName = formData.get('bankAccountName') as string;
 
   const certificates = certificatesRaw ? certificatesRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
   const specializations = specializationsRaw ? specializationsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+  // Fetch current to preserve other allowances if any
+  const { data: currentTeacher } = await supabase.from('teachers').select('allowances').eq('id', id).single();
+  const currentAllowances = currentTeacher?.allowances || {};
+  const updatedAllowances = {
+    ...currentAllowances,
+    bankName,
+    bankAccountNo,
+    bankAccountName,
+  };
 
   const { error } = await supabase
     .from('teachers')
@@ -145,6 +164,7 @@ export async function updateTeacher(id: string, formData: FormData) {
       status: status || 'Đang làm việc',
       certificates,
       specializations,
+      allowances: updatedAllowances,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id);

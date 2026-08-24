@@ -34,8 +34,9 @@ export default function TeachersClient({ initialTeachers }: TeachersClientProps)
     let giaoTiepCount = 0;
     
     teachersList.forEach(t => {
-      if (t.specializations?.some((s: string) => s.toLowerCase().includes('ielts'))) ieltsCount++;
-      if (t.specializations?.some((s: string) => s.toLowerCase().includes('giao tiếp'))) giaoTiepCount++;
+      const specs = Array.isArray(t.specializations) ? t.specializations : (typeof t.specializations === 'string' ? [t.specializations] : []);
+      if (specs.some((s: string) => s && typeof s === 'string' && s.toLowerCase().includes('ielts'))) ieltsCount++;
+      if (specs.some((s: string) => s && typeof s === 'string' && s.toLowerCase().includes('giao tiếp'))) giaoTiepCount++;
     });
 
     const ieltsPercent = total > 0 ? Math.round((ieltsCount / total) * 100) : 0;
@@ -43,9 +44,9 @@ export default function TeachersClient({ initialTeachers }: TeachersClientProps)
 
     return [
       { label: 'Tổng giáo viên', value: total.toString(), sub: 'Hiện tại', icon: 'co_present', color: 'text-primary' },
-      { label: 'Giáo viên IELTS', value: ieltsCount.toString(), sub: `${ieltsPercent}% tổng số`, icon: 'school', color: 'text-primary' },
-      { label: 'Giáo viên Giao tiếp', value: giaoTiepCount.toString(), sub: `${giaoTiepPercent}% tổng số`, icon: 'record_voice_over', color: 'text-primary' },
-      { label: 'Đang làm việc', value: teachersList.filter((t:any) => t.status === 'Đang làm việc').length.toString(), sub: 'Hoạt động', icon: 'event_available', color: 'text-success' },
+      { label: 'Giáo viên IELTS', value: ieltsCount.toString(), sub: `${ieltsPercent}% tổng số`, icon: 'school', color: 'text-blue-600' },
+      { label: 'Giáo viên Giao tiếp', value: giaoTiepCount.toString(), sub: `${giaoTiepPercent}% tổng số`, icon: 'record_voice_over', color: 'text-emerald-600' },
+      { label: 'Đang làm việc', value: teachersList.filter((t:any) => t.status === 'Đang làm việc').length.toString(), sub: 'Hoạt động', icon: 'event_available', color: 'text-green-600' },
     ];
   }, [teachersList]);
 
@@ -71,7 +72,7 @@ export default function TeachersClient({ initialTeachers }: TeachersClientProps)
         !search ||
         (t.fullName || '').toLowerCase().includes(search.toLowerCase()) ||
         (t.code || '').toLowerCase().includes(search.toLowerCase()) ||
-        (t.specializations || []).some((s: any) => (s || '').toLowerCase().includes(search.toLowerCase()));
+        (Array.isArray(t.specializations) ? t.specializations : []).some((s: any) => (s || '').toLowerCase().includes(search.toLowerCase()));
       const matchStatus = statusFilter === 'Tất cả' || t.status === statusFilter;
       return matchSearch && matchStatus;
     });
@@ -169,12 +170,12 @@ export default function TeachersClient({ initialTeachers }: TeachersClientProps)
                 <StatusBadge status={teacher.status} />
               </div>
               <div className="flex flex-wrap gap-xs mt-xs">
-                {teacher.specializations.slice(0, 2).map((s: any) => (
+                {(Array.isArray(teacher.specializations) ? teacher.specializations : []).slice(0, 2).map((s: any) => (
                   <span key={s} className="text-label-sm bg-secondary-container text-on-secondary-container px-sm py-xs rounded-full">
                     {s}
                   </span>
                 ))}
-                {teacher.certificates.slice(0, 1).map((c: any) => (
+                {(Array.isArray(teacher.certificates) ? teacher.certificates : []).slice(0, 1).map((c: any) => (
                   <span key={c} className="text-label-sm bg-primary/10 text-primary px-sm py-xs rounded-full">
                     {c}
                   </span>
@@ -241,12 +242,12 @@ export default function TeachersClient({ initialTeachers }: TeachersClientProps)
                   </td>
                   <td className="px-md py-md">
                     <div className="flex flex-wrap gap-xs">
-                      {teacher.specializations.slice(0, 2).map((s: any) => (
+                      {(Array.isArray(teacher.specializations) ? teacher.specializations : []).slice(0, 2).map((s: any) => (
                         <span key={s} className="text-label-sm bg-secondary-container text-on-secondary-container px-sm py-xs rounded-full">
                           {s}
                         </span>
                       ))}
-                      {teacher.certificates.slice(0, 1).map((c: any) => (
+                      {(Array.isArray(teacher.certificates) ? teacher.certificates : []).slice(0, 1).map((c: any) => (
                         <span key={c} className="text-label-sm bg-primary/10 text-primary px-sm py-xs rounded-full">
                           {c}
                         </span>

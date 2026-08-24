@@ -31,8 +31,12 @@ export default function EditTeacherClient({ teacher }: EditTeacherClientProps) {
     salaryType: teacher.salaryType || '',
     salaryRate: teacher.salaryRate?.toString() || '',
     assistantSalaryRate: teacher.assistantSalaryRate?.toString() || '',
-    certificates: teacher.certificates?.join(', ') || '',
-    specializations: teacher.specializations?.join(', ') || '',
+    bankName: teacher.allowances?.bankName || '',
+    bankAccountNo: teacher.allowances?.bankAccountNo || '',
+    bankAccountName: teacher.allowances?.bankAccountName || '',
+    certificates: Array.isArray(teacher.certificates) ? teacher.certificates.join(', ') : '',
+    specializations: Array.isArray(teacher.specializations) ? teacher.specializations.join(', ') : '',
+    teachingStrengths: Array.isArray(teacher.teachingStrengths) ? teacher.teachingStrengths.join(', ') : '',
   });
 
   const handleChange = (field: string, value: string) => {
@@ -342,6 +346,35 @@ export default function EditTeacherClient({ teacher }: EditTeacherClientProps) {
                 placeholder="Ví dụ: 80.000"
                 className="w-full"
               />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-lg pt-md border-t border-outline-variant/20">
+            <div>
+              <label className="text-label-sm text-on-surface-variant mb-xs block">Ngân hàng</label>
+              <select value={form.bankName} onChange={(e) => handleChange('bankName', e.target.value)} className="input-field w-full">
+                <option value="">-- Chọn --</option>
+                <option value="VietinBank">VietinBank (CTG)</option>
+                <option value="Vietcombank">Vietcombank (VCB)</option>
+                <option value="BIDV">BIDV</option>
+                <option value="Agribank">Agribank</option>
+                <option value="Techcombank">Techcombank (TCB)</option>
+                <option value="MB">MBBank (MB)</option>
+                <option value="ACB">ACB</option>
+                <option value="VPBank">VPBank</option>
+                <option value="TPBank">TPBank</option>
+                <option value="Sacombank">Sacombank (STB)</option>
+                <option value="VIB">VIB</option>
+                <option value="MSB">MSB</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-label-sm text-on-surface-variant mb-xs block">Số tài khoản</label>
+              <input value={form.bankAccountNo} onChange={(e) => handleChange('bankAccountNo', e.target.value)} className="input-field w-full" placeholder="Nhập số tài khoản" />
+            </div>
+            <div>
+              <label className="text-label-sm text-on-surface-variant mb-xs block">Tên tài khoản</label>
+              <input value={form.bankAccountName} onChange={(e) => handleChange('bankAccountName', e.target.value.toUpperCase())} className="input-field w-full uppercase" placeholder="TÊN TÀI KHOẢN" />
             </div>
           </div>
         </div>

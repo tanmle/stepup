@@ -11,7 +11,7 @@ export default async function PayrollPage() {
   // Fetch teachers list for dropdowns
   const { data: teachers, error: teachersError } = await supabase
     .from('teachers')
-    .select('id, full_name, code, salary_type, salary_rate')
+    .select('id, full_name, code, salary_type, salary_rate, allowances')
     .eq('status', 'Đang làm việc')
     .order('full_name', { ascending: true });
 

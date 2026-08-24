@@ -470,7 +470,13 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                     <label key={cert} className="flex items-center gap-sm">
                       <input 
                         type="checkbox" 
-                        checked={teacher.certificates?.includes(cert) || false} 
+                        checked={
+                          Array.isArray(teacher.certificates)
+                            ? teacher.certificates.some((c: string) => c.toLowerCase().includes(cert.toLowerCase()))
+                            : typeof teacher.certificates === 'string'
+                            ? teacher.certificates.toLowerCase().includes(cert.toLowerCase())
+                            : false
+                        }
                         readOnly
                         className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary"
                       />
@@ -488,11 +494,11 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-outline-variant/10">
-                      {teacher.certificate_details?.length > 0 ? (
-                        teacher.certificate_details.map((c: any, idx: number) => (
+                      {teacher.certificates?.length > 0 ? (
+                        (Array.isArray(teacher.certificates) ? teacher.certificates : (typeof teacher.certificates === 'string' ? teacher.certificates.split(',').map((s: string) => s.trim()) : [])).filter(Boolean).map((c: string, idx: number) => (
                           <tr key={idx}>
-                            <td className="p-sm text-body-md font-medium">{c.name}</td>
-                            <td className="p-sm text-body-md">{c.expiry || 'Không thời hạn'}</td>
+                            <td className="p-sm text-body-md font-medium">{c}</td>
+                            <td className="p-sm text-body-md text-on-surface-variant italic">Không xác định</td>
                           </tr>
                         ))
                       ) : (
@@ -616,37 +622,156 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                 </div>
               </div>
 
+              
               <div className="border border-outline-variant/20 rounded-xl overflow-hidden bg-surface-container-lowest">
-                <div className="grid grid-cols-7 bg-surface-container-low border-b border-outline-variant/20">
-                  {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(day => (
-                    <div key={day} className="p-xs text-center text-label-sm font-medium text-on-surface-variant border-r last:border-r-0 border-outline-variant/20">{day}</div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-7 auto-rows-[100px]">
-                  {generateCalendarDays().map((dayStr, idx) => {
-                    if (!dayStr) return <div key={idx} className="border-r border-b border-outline-variant/20 bg-surface-container-lowest/50"></div>;
-                    const dateParts = dayStr.split('-');
-                    const dayNum = parseInt(dateParts[2]);
-                    const records = (teacher.attendance || []).filter((a: any) => a.date === dayStr);
-                    
-                    return (
-                      <div 
-                        key={idx} 
-                        className="border-r border-b border-outline-variant/20 p-xs bg-surface-container-lowest transition-colors relative flex flex-col"
-                      >
-                        <div className="text-label-sm text-on-surface-variant group-hover:text-primary transition-colors mb-1">{dayNum}</div>
-                        <div className="flex-1 flex flex-col gap-1 overflow-y-auto">
-                          {records.map((r: any, ri: number) => (
-                            <div key={ri} className="bg-primary/10 text-primary rounded px-1 py-0.5 text-[10px] font-medium flex items-center justify-between">
-                              <span className="truncate">{teacher.salaryType === 'fixed' ? (r.hours_worked == 1 ? 'Full' : (r.hours_worked == 0.5 ? 'Nửa' : 'Nghỉ phép')) : `${r.hours_worked}h`}</span>
+                {teacher.salaryType === 'fixed' ? (
+                  <>
+                    <div className="grid grid-cols-7 bg-surface-container-low border-b border-outline-variant/20">
+                      {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(day => (
+                        <div key={day} className="p-xs text-center text-label-sm font-medium text-on-surface-variant border-r last:border-r-0 border-outline-variant/20">{day}</div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-7">
+                      {(() => {
+                        const [yearStr, monthStr] = calMonth.split('-');
+                        const year = parseInt(yearStr);
+                        const month = parseInt(monthStr) - 1;
+                        const daysInMonth = new Date(year, month + 1, 0).getDate();
+                        const calDays = [];
+                        let firstDayMon = new Date(year, month, 1).getDay();
+                        firstDayMon = firstDayMon === 0 ? 6 : firstDayMon - 1;
+                        for (let i = 0; i < firstDayMon; i++) calDays.push(null);
+                        for (let i = 1; i <= daysInMonth; i++) calDays.push(i);
+                        
+                        return calDays.map((day, idx) => {
+                          if (!day) return <div key={`empty-${idx}`} className="min-h-[80px] border-r border-b border-outline-variant/10 bg-surface-container-lowest/30" />;
+                          
+                          const isSunday = new Date(year, month, day).getDay() === 0;
+                          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                          const dayRecord = (teacher.attendance || []).find((a: any) => a.date?.startsWith(dateStr) && (a.type === 'Nghỉ phép' || a.type === 'Vắng mặt'));
+                          const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
+                          const isFuture = new Date(year, month, day) > new Date();
+                          
+                          if (isSunday) {
+                            return (
+                              <div key={day} className="min-h-[80px] p-2 border-r border-b border-outline-variant/10 bg-surface-container-lowest/50 flex flex-col items-center justify-center opacity-40">
+                                <span className="text-label-md text-on-surface-variant">{day}</span>
+                                <span className="material-symbols-outlined text-[14px] text-on-surface-variant mt-0.5">lock</span>
+                              </div>
+                            );
+                          }
+
+                          const isDayOff = !!dayRecord;
+                          const dayOffType = dayRecord?.type;
+
+                          return (
+                            <div 
+                              key={day}
+                              className={`min-h-[80px] p-2 border-r border-b border-outline-variant/10 flex flex-col items-center justify-center gap-1 ${
+                                isToday ? 'ring-2 ring-primary ring-inset' : ''
+                              } ${
+                                isDayOff 
+                                  ? (dayOffType === 'Vắng mặt' ? 'bg-error/5' : 'bg-amber-50')
+                                  : (isFuture ? 'bg-surface' : 'bg-emerald-50/50')
+                              }`}
+                            >
+                              <span className={`text-label-md font-medium w-7 h-7 flex items-center justify-center rounded-full ${
+                                isToday ? 'bg-primary text-on-primary' : 'text-on-surface'
+                              }`}>
+                                {day}
+                              </span>
+                              {isDayOff ? (
+                                <div className="flex flex-col items-center">
+                                  <span className={`material-symbols-outlined text-[18px] ${dayOffType === 'Vắng mặt' ? 'text-error' : 'text-amber-600'}`}>
+                                    {dayOffType === 'Vắng mặt' ? 'cancel' : 'beach_access'}
+                                  </span>
+                                  <span className={`text-[10px] font-medium mt-0.5 ${dayOffType === 'Vắng mặt' ? 'text-error' : 'text-amber-600'}`}>
+                                    {dayOffType === 'Vắng mặt' ? 'Vắng' : 'Nghỉ phép'}
+                                  </span>
+                                </div>
+                              ) : !isFuture ? (
+                                <span className="material-symbols-outlined text-[18px] text-emerald-600">check_circle</span>
+                              ) : (
+                                <span className="material-symbols-outlined text-[18px] text-on-surface-variant/30">remove_circle_outline</span>
+                              )}
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-7 bg-surface-container-low border-b border-outline-variant/20">
+                      {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map(d => (
+                        <div key={d} className="p-2 text-center text-label-sm font-semibold text-on-surface-variant uppercase">{d}</div>
+                      ))}
+                    </div>
+                    
+                    <div className="grid grid-cols-7">
+                      {(() => {
+                        const [yearStr, monthStr] = calMonth.split('-');
+                        const year = parseInt(yearStr);
+                        const month = parseInt(monthStr) - 1;
+                        const daysInMonth = new Date(year, month + 1, 0).getDate();
+                        const calDays = [];
+                        let firstDay = new Date(year, month, 1).getDay();
+                        for (let i = 0; i < firstDay; i++) calDays.push(null);
+                        for (let i = 1; i <= daysInMonth; i++) calDays.push(i);
+                        
+                        return calDays.map((day, idx) => {
+                          if (!day) return <div key={`empty-${idx}`} className="min-h-[100px] p-2 border-r border-b border-outline-variant/10 bg-surface-container-lowest/50" />;
+                          
+                          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                          const dayAtts = (teacher.attendance || []).filter((a: any) => a.date?.startsWith(dateStr));
+                          const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
+                          const isHourly = teacher.salaryType === 'hourly';
+                          
+                          return (
+                            <div 
+                              key={day} 
+                              className={`min-h-[100px] p-2 border-r border-b border-outline-variant/10 relative ${isToday ? 'bg-primary/5' : 'bg-surface'}`}
+                            >
+                              <div className="flex justify-between items-start mb-1">
+                                <span className={`text-label-md w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-primary text-on-primary font-bold' : 'text-on-surface'}`}>
+                                  {day}
+                                </span>
+                              </div>
+                              
+                              <div className="space-y-1">
+                                {dayAtts.map((att: any) => (
+                                  <div key={att.id} className={`text-[10px] p-1 rounded border flex justify-between ${
+                                    att.type === 'Nghỉ phép' ? 'bg-error-container/50 border-error/20 text-error' :
+                                    att.type === 'Đi muộn' ? 'bg-tertiary-container/50 border-tertiary/20 text-tertiary' :
+                                    'bg-primary-container/30 border-primary/20 text-primary-600'
+                                  }`}>
+                                    <div className="truncate" title={att.note || att.type}>
+                                      {isHourly ? (
+                                        <><b>{att.check_in?.substring(0,5)}</b>-<b>{att.check_out?.substring(0,5)}</b></>
+                                      ) : (
+                                        <b>{att.type}</b>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </>
+                )}
               </div>
+
+              {teacher.salaryType === 'fixed' && (
+                <div className="flex flex-wrap gap-x-md gap-y-xs text-label-sm text-on-surface-variant pt-2">
+                  <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px] text-emerald-600">check_circle</span> Đi làm</span>
+                  <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px] text-amber-600">beach_access</span> Nghỉ phép</span>
+                  <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px] text-error">cancel</span> Vắng mặt</span>
+                  <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px] text-on-surface-variant/40">lock</span> Chủ nhật</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -706,15 +831,17 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                   <span className="text-label-sm text-primary uppercase font-medium">Mức lương</span>
                   <div className="mt-sm flex flex-col gap-1">
                     <div className="flex items-end gap-sm">
-                      <span className="text-body-sm text-on-surface-variant w-24">Dạy chính:</span>
+                      <span className="text-body-sm text-on-surface-variant w-24">{teacher.salaryType === 'fixed' ? 'Lương tháng:' : 'Đơn giá:'}</span>
                       <span className="text-title-md font-bold text-on-surface">{formatVND(teacher.salaryRate)}</span>
-                      <span className="text-on-surface-variant mb-0.5 text-body-sm">/ {teacher.salaryType === 'fixed' ? 'tháng' : 'giờ'}</span>
+                      <span className="text-on-surface-variant mb-0.5 text-body-sm">/ {teacher.salaryType === 'fixed' ? 'tháng' : (teacher.salaryType === 'hourly' ? 'giờ' : 'tiết')}</span>
                     </div>
-                    <div className="flex items-end gap-sm">
-                      <span className="text-body-sm text-on-surface-variant w-24">Trợ giảng:</span>
-                      <span className="text-title-md font-bold text-on-surface">{formatVND(teacher.assistantSalaryRate)}</span>
-                      <span className="text-on-surface-variant mb-0.5 text-body-sm">/ giờ</span>
-                    </div>
+                    {teacher.salaryType !== 'fixed' && (
+                      <div className="flex items-end gap-sm">
+                        <span className="text-body-sm text-on-surface-variant w-24">Trợ giảng:</span>
+                        <span className="text-title-md font-bold text-on-surface">{formatVND(teacher.assistantSalaryRate)}</span>
+                        <span className="text-on-surface-variant mb-0.5 text-body-sm">/ {teacher.salaryType === 'hourly' ? 'giờ' : 'tiết'}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -746,11 +873,11 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                   <table className="w-full text-left min-w-[800px]">
                     <thead className="bg-surface-container-low border-b border-outline-variant/20">
                       <tr>
-                        <th className="p-sm text-label-sm text-on-surface-variant">Tháng</th>
-                        <th className="p-sm text-label-sm text-on-surface-variant text-right">Tổng giờ</th>
-                        <th className="p-sm text-label-sm text-on-surface-variant text-right">Lương cơ bản</th>
-                        <th className="p-sm text-label-sm text-on-surface-variant text-right">Phụ cấp</th>
-                        <th className="p-sm text-label-sm text-on-surface-variant text-right">Khấu trừ</th>
+                        <th className="p-sm text-label-sm text-on-surface-variant">Kỳ lương</th>
+                        <th className="p-sm text-label-sm text-on-surface-variant text-right">Số lượng</th>
+                        <th className="p-sm text-label-sm text-on-surface-variant text-right">Đơn giá</th>
+                        <th className="p-sm text-label-sm text-on-surface-variant text-right">Thưởng</th>
+                        <th className="p-sm text-label-sm text-on-surface-variant text-right">Phạt/Khấu trừ</th>
                         <th className="p-sm text-label-sm text-on-surface-variant text-right">Thực nhận</th>
                         <th className="p-sm text-label-sm text-on-surface-variant text-center">Trạng thái</th>
                       </tr>
@@ -759,12 +886,12 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                       {teacher.salaryRecords?.length > 0 ? (
                         teacher.salaryRecords.map((r: any, idx: number) => (
                           <tr key={idx} className="hover:bg-surface-container-low transition-colors">
-                            <td className="p-sm font-medium">{r.month}</td>
-                            <td className="p-sm text-right">{r.total_hours}</td>
-                            <td className="p-sm text-right">{formatVND(r.base_salary)}</td>
-                            <td className="p-sm text-right">{formatVND(r.allowance_total)}</td>
-                            <td className="p-sm text-right text-rose-600">-{formatVND(r.deduction_total)}</td>
-                            <td className="p-sm text-right font-bold text-primary">{formatVND(r.net_salary)}</td>
+                            <td className="p-sm font-medium">Tháng {r.month}/{r.year}</td>
+                            <td className="p-sm text-right">{teacher.salaryType === 'fixed' ? `${r.total_hours} ngày` : `${r.sessions_count || r.total_hours} ${teacher.salaryType === 'hourly' ? 'giờ' : 'tiết'}`}</td>
+                            <td className="p-sm text-right text-on-surface-variant">{formatVND(r.rate_per_unit || r.base_salary)}</td>
+                            <td className="p-sm text-right text-primary">+{formatVND(r.bonus || r.allowance_total || 0)}</td>
+                            <td className="p-sm text-right text-error">-{formatVND((r.deductions || 0) + (r.fine || 0) || r.deduction_total || 0)}</td>
+                            <td className="p-sm text-right font-bold text-on-background">{formatVND(r.net_salary)}</td>
                             <td className="p-sm text-center">
                               <span className={`px-2 py-1 rounded text-[11px] font-medium ${
                                 r.status === 'Đã thanh toán' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
@@ -954,8 +1081,8 @@ export default function TeacherDetailClient({ teacher }: TeacherDetailClientProp
                       <div key={r.id} className="flex items-center justify-between bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-sm">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-body-md text-primary">
-                              {teacher.salaryType === 'fixed' ? (r.hours_worked == 1 ? 'Full ngày' : (r.hours_worked == 0.5 ? 'Nửa ngày' : 'Nghỉ phép')) : `${r.check_in} - ${r.check_out} (${r.hours_worked}h)`}
+                            <span className={`font-medium text-body-md ${r.type === 'Nghỉ phép' ? 'text-error' : 'text-primary'}`}>
+                              {teacher.salaryType === 'fixed' ? (r.type === 'Nghỉ phép' ? 'Nghỉ phép' : (r.hours_worked == 0.5 ? 'Nửa ngày' : 'Full ngày')) : (r.type === 'Nghỉ phép' ? 'Nghỉ phép' : `${r.check_in} - ${r.check_out} (${r.hours_worked}h)`)}
                             </span>
                             <span className="bg-surface-variant px-1.5 py-0.5 rounded text-[10px]">{r.type}</span>
                           </div>

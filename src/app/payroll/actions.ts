@@ -352,3 +352,52 @@ export async function updateTeacherAttendance(attendanceId: string, formData: Fo
   }
   return { success: true };
 }
+
+export async function payTeacherSalary(salaryId: string) {
+  const supabase = await createClient();
+
+  // 1. Get salary record
+  const { data: salary, error: fetchError } = await supabase
+    .from('teacher_salary_records')
+    .select('*, teachers(full_name)')
+    .eq('id', salaryId)
+    .single();
+
+  if (fetchError || !salary) {
+    throw new Error('Không tìm thấy bảng lương');
+  }
+
+  if (salary.status === 'Đã thanh toán') {
+    throw new Error('Bảng lương này đã được thanh toán');
+  }
+
+  // 2. Update status
+  const { error: updateError } = await supabase
+    .from('teacher_salary_records')
+    .update({ status: 'Đã thanh toán' })
+    .eq('id', salaryId);
+
+  if (updateError) {
+    throw new Error('Lỗi cập nhật trạng thái');
+  }
+
+  // 3. Insert transaction
+  const description = `Thanh toán lương tháng ${salary.month}/${salary.year} cho giáo viên ${salary.teachers?.full_name}`;
+  
+  const { error: txError } = await supabase
+    .from('transactions')
+    .insert([{
+      description,
+      amount: salary.net_salary,
+      type: 'expense',
+      method: 'Chuyển khoản'
+    }]);
+
+  if (txError) {
+    console.error('Error inserting transaction:', txError);
+    // Continue anyway since salary is marked paid
+  }
+
+  revalidatePath('/payroll');
+  revalidatePath('/reports');
+}

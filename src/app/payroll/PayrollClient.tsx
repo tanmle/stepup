@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useTransition, useEffect } from 'react';
-import { addTeacherAttendance, deleteTeacherAttendance, generateSalaryRecord, generateAttendanceFromSessions, updateTeacherAttendance, markFixedSalaryDayOff, removeFixedSalaryDayOff } from './actions';
+import { addTeacherAttendance, deleteTeacherAttendance, generateSalaryRecord, generateAttendanceFromSessions, updateTeacherAttendance, markFixedSalaryDayOff, removeFixedSalaryDayOff, payTeacherSalary } from './actions';
 import CurrencyInput from '@/components/ui/CurrencyInput';
 import { formatVND } from '@/utils/format';
 
@@ -25,6 +25,7 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
 
   // Modal states for Salary
   const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false);
+  const [payModalData, setPayModalData] = useState<any | null>(null);
   const [salaryMonth, setSalaryMonth] = useState(currentDate.getMonth() + 1);
   const [salaryYear, setSalaryYear] = useState(currentDate.getFullYear());
   const [salaryBonus, setSalaryBonus] = useState(0);
@@ -170,6 +171,32 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
   };
 
   // --- SALARY HANDLERS ---
+
+  const handlePaySalary = (salaryId: string) => {
+    const salary = salaries.find(s => s.id === salaryId);
+    if (!salary) return;
+    
+    if (!selectedTeacher.allowances?.bankName || !selectedTeacher.allowances?.bankAccountNo) {
+      alert('Vui lòng cập nhật thông tin Ngân hàng và Số tài khoản trong hồ sơ Giáo viên trước khi thanh toán!');
+      return;
+    }
+    
+    setPayModalData(salary);
+  };
+  
+  const confirmPayment = () => {
+    if (!payModalData) return;
+    startTransition(async () => {
+      try {
+        await payTeacherSalary(payModalData.id);
+        alert('Đã ghi nhận thanh toán thành công!');
+        setPayModalData(null);
+      } catch (error: any) {
+        alert('Lỗi: ' + error.message);
+      }
+    });
+  };
+
   const handleGenerateSalary = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
@@ -525,6 +552,7 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
                   <th className="px-md py-sm text-right text-label-sm text-on-surface-variant uppercase">Phạt/Khấu trừ</th>
                   <th className="px-md py-sm text-right text-label-sm text-on-surface-variant uppercase">Thực nhận</th>
                   <th className="px-md py-sm text-center text-label-sm text-on-surface-variant uppercase">Trạng thái</th>
+                  <th className="px-md py-sm text-center text-label-sm text-on-surface-variant uppercase">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
@@ -541,15 +569,91 @@ export default function PayrollClient({ teachers, initialAttendance, initialSala
                         {s.status}
                       </span>
                     </td>
+                    <td className="px-md py-md text-center">
+                      {s.status !== 'Đã thanh toán' ? (
+                        <button 
+                          onClick={() => handlePaySalary(s.id)}
+                          disabled={isPending}
+                          className="btn-secondary py-1 px-3 text-label-sm flex items-center gap-1 mx-auto"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">payments</span>
+                          Thanh toán
+                        </button>
+                      ) : (
+                        <span className="text-label-sm text-on-surface-variant flex items-center justify-center gap-1">
+                          <span className="material-symbols-outlined text-[16px]">check</span> Đã xong
+                        </span>
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {salaries.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center py-xl text-on-surface-variant">Chưa có bảng lương nào</td>
+                    <td colSpan={8} className="text-center py-xl text-on-surface-variant">Chưa có bảng lương nào</td>
                   </tr>
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Pay Modal */}
+      {payModalData && (
+        <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-md animate-fade-in">
+          <div className="bg-surface rounded-2xl w-full max-w-[400px] overflow-hidden shadow-xl flex flex-col">
+            <div className="p-md border-b border-outline-variant/20 flex items-center justify-between bg-surface-container-low">
+              <h3 className="text-title-md font-medium text-on-background flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">qr_code_scanner</span>
+                Thanh toán lương
+              </h3>
+              <button onClick={() => setPayModalData(null)} className="text-on-surface-variant hover:text-on-surface transition-colors p-1 rounded-full hover:bg-surface-container-highest">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            <div className="p-lg flex flex-col items-center">
+              <p className="text-body-md text-on-surface-variant mb-4 text-center">
+                Quét mã QR để chuyển khoản <strong>{formatVND(payModalData.net_salary)}</strong> cho giáo viên <strong>{selectedTeacher?.full_name}</strong>
+              </p>
+              
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-outline-variant/20 mb-6">
+                <img 
+                  src={`https://img.vietqr.io/image/${selectedTeacher?.allowances?.bankName}-${selectedTeacher?.allowances?.bankAccountNo}-compact2.png?amount=${payModalData.net_salary}&addInfo=Thanh toan luong T${payModalData.month} ${selectedTeacher?.full_name}&accountName=${selectedTeacher?.allowances?.bankAccountName || ''}`} 
+                  alt="VietQR"
+                  className="w-48 h-48 object-contain"
+                />
+              </div>
+
+              <div className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-sm mb-6 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-on-surface-variant">Ngân hàng:</span>
+                  <span className="font-medium">{selectedTeacher?.allowances?.bankName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-on-surface-variant">Số tài khoản:</span>
+                  <span className="font-medium">{selectedTeacher?.allowances?.bankAccountNo}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-on-surface-variant">Người nhận:</span>
+                  <span className="font-medium">{selectedTeacher?.allowances?.bankAccountName}</span>
+                </div>
+              </div>
+
+              <button 
+                onClick={confirmPayment} 
+                disabled={isPending}
+                className="btn-primary w-full py-2.5 text-label-lg flex items-center justify-center gap-2"
+              >
+                {isPending ? (
+                  'Đang xử lý...'
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined">check_circle</span>
+                    Xác nhận đã trả lương
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

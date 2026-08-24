@@ -19,9 +19,16 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
   const [activeTab, setActiveTab] = useState<'overview' | 'schedule'>('overview');
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [paymentPlan, setPaymentPlan] = useState('1');
+  const [discountPercent, setDiscountPercent] = useState('0');
   const [isPending, startTransition] = useTransition();
   const [editingSession, setEditingSession] = useState<any | null>(null);
   const [editingEnrollment, setEditingEnrollment] = useState<any>(null);
+  const [editPaymentPlan, setEditPaymentPlan] = useState('1');
+  const [editDiscountPercent, setEditDiscountPercent] = useState('0');
+
+  const courseFee = cls.courses?.tuition_fee || 0;
+  const courseDuration = cls.courses?.duration_months || 1;
 
   const handleAddOrUpdateSession = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -71,10 +78,22 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
     const sd = formData.get('startDate') as string;
     const ed = formData.get('endDate') as string;
     const st = formData.get('status') as string;
+    const plan = formData.get('paymentPlan') as string;
+    const discount = formData.get('discountPercent') as string;
+
     startTransition(async () => {
       try {
-        await updateEnrollment(editingEnrollment.id, sd || null, ed || null, st || undefined);
+        await updateEnrollment(
+          editingEnrollment.id, 
+          sd || null, 
+          ed || null, 
+          st || undefined,
+          plan || undefined,
+          discount ? parseInt(discount) : 0
+        );
         setEditingEnrollment(null);
+        setEditPaymentPlan('1');
+        setEditDiscountPercent('0');
         router.refresh();
       } catch (err: any) {
         alert(err.message);
@@ -103,9 +122,17 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
       try {
         const formData = new FormData(e.target as HTMLFormElement);
         const sd = formData.get('enrollStartDate') as string;
-        await enrollStudentInClass(selectedStudentId, cls.id, sd || undefined);
+        await enrollStudentInClass(
+          selectedStudentId, 
+          cls.id, 
+          sd || undefined,
+          paymentPlan,
+          parseInt(discountPercent) || 0
+        );
         setIsEnrollModalOpen(false);
         setSelectedStudentId('');
+        setPaymentPlan('1');
+        setDiscountPercent('0');
         router.refresh();
       } catch (error: any) {
         console.error('Error enrolling student:', error);
@@ -186,6 +213,7 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
                     <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase">Mã HV</th>
                     <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase">Học viên</th>
                     <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase">Ngày bắt đầu - kết thúc</th>
+                    <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase">Học phí</th>
                     <th className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase">Trạng thái</th>
                     <th className="px-md py-md text-right text-label-sm text-on-surface-variant uppercase w-20">Thao tác</th>
                   </tr>
@@ -212,14 +240,58 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
                         ) : '—'}
                       </td>
                       <td className="px-md py-md">
+                        {enr.tuition ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-body-md font-medium text-on-surface">
+                              {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(enr.tuition.total_tuition)}
+                            </span>
+                            <div className="flex items-center gap-xs">
+                              <span className="text-[11px] px-1.5 py-0.5 bg-surface-container-high rounded text-on-surface-variant">
+                                {courseFee > 0 && Math.round((enr.tuition.total_tuition || 0) / courseFee) === courseDuration 
+                                  ? 'Đóng toàn khóa' 
+                                  : `Đóng ${courseFee > 0 ? Math.round((enr.tuition.total_tuition || 0) / courseFee) : 1} tháng`}
+                              </span>
+                              <span className={`text-[11px] font-medium ${enr.tuition.amount_owed > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                {enr.tuition.amount_owed > 0 
+                                  ? `Còn nợ: ${new Intl.NumberFormat('vi-VN').format(enr.tuition.amount_owed)}đ` 
+                                  : 'Đã thu đủ'}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-body-md text-on-surface-variant">—</span>
+                        )}
+                      </td>
+                      <td className="px-md py-md">
                         <StatusBadge status={enr.status} />
                       </td>
                       <td className="px-md py-md text-right">
                         <div className="flex items-center justify-end gap-xs">
                           <button 
-                            onClick={() => setEditingEnrollment(enr)}
+                            onClick={() => {
+                              setEditingEnrollment(enr);
+                              let plan = '1';
+                              let discount = '0';
+                              if (enr.tuition) {
+                                if (courseFee > 0) {
+                                  const months = Math.round((enr.tuition.total_tuition || 0) / courseFee);
+                                  if (months === courseDuration) {
+                                    plan = 'full';
+                                  } else {
+                                    plan = months.toString();
+                                  }
+                                }
+                                if (enr.tuition.total_tuition && enr.tuition.total_tuition > 0) {
+                                  if (enr.tuition.discount) {
+                                    discount = Math.round((enr.tuition.discount / enr.tuition.total_tuition) * 100).toString();
+                                  }
+                                }
+                              }
+                              setEditPaymentPlan(plan);
+                              setEditDiscountPercent(discount);
+                            }}
                             className="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant transition-colors"
-                            title="Sửa ngày học"
+                            title="Sửa thông tin học viên"
                           >
                             <span className="material-symbols-outlined text-[18px]">edit</span>
                           </button>
@@ -450,6 +522,51 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
                   ))}
                 </select>
               </div>
+              <div className="grid grid-cols-2 gap-md">
+                <div>
+                  <label className="text-label-sm text-on-surface-variant mb-xs block">Hình thức đóng học phí</label>
+                  <select
+                    value={paymentPlan}
+                    onChange={(e) => setPaymentPlan(e.target.value)}
+                    className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50"
+                  >
+                    <option value="1">1 tháng</option>
+                    <option value="2">2 tháng</option>
+                    <option value="3">3 tháng</option>
+                    <option value="6">6 tháng</option>
+                    <option value="full">Toàn khóa ({courseDuration} tháng)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-label-sm text-on-surface-variant mb-xs block">Chiết khấu (%)</label>
+                  <input 
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={discountPercent}
+                    onChange={(e) => setDiscountPercent(e.target.value)}
+                    className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50"
+                  />
+                </div>
+              </div>
+              
+              <div className="bg-surface-container-low p-md rounded-xl border border-outline-variant/20 space-y-xs">
+                <div className="flex justify-between text-body-sm text-on-surface-variant">
+                  <span>Giá gốc lớp học ({paymentPlan === 'full' ? courseDuration : paymentPlan} tháng):</span>
+                  <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(courseFee * (paymentPlan === 'full' ? courseDuration : parseInt(paymentPlan)))}</span>
+                </div>
+                {parseInt(discountPercent) > 0 && (
+                  <div className="flex justify-between text-body-sm text-emerald-600">
+                    <span>Chiết khấu ({discountPercent}%):</span>
+                    <span>-{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(courseFee * (paymentPlan === 'full' ? courseDuration : parseInt(paymentPlan)) * parseInt(discountPercent) / 100)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-label-md font-bold text-on-background pt-xs border-t border-outline-variant/10">
+                  <span>Tổng phải thu đợt này:</span>
+                  <span className="text-primary">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(courseFee * (paymentPlan === 'full' ? courseDuration : parseInt(paymentPlan)) * (1 - (parseInt(discountPercent) || 0) / 100))}</span>
+                </div>
+              </div>
+
               <div>
                 <label className="text-label-sm text-on-surface-variant mb-xs block">Ngày bắt đầu học (không bắt buộc)</label>
                 <input 
@@ -472,35 +589,38 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
       {/* Edit Enrollment Modal */}
       {editingEnrollment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-md bg-background/80 backdrop-blur-sm animate-fade-in">
-          <div className="card p-xl w-[400px] max-w-[90vw] shadow-elevation-3">
-            <div className="flex justify-between items-center mb-lg border-b border-outline-variant/20 pb-md">
-              <h2 className="text-title-lg font-semibold text-on-background">Sửa ngày học</h2>
+          <div className="card p-xl w-[500px] max-w-[90vw] shadow-elevation-3 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-lg border-b border-outline-variant/20 pb-md sticky top-0 bg-surface z-10">
+              <h2 className="text-title-lg font-semibold text-on-background">Sửa thông tin học viên</h2>
               <button onClick={() => setEditingEnrollment(null)} className="text-on-surface-variant hover:text-on-surface">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
             <p className="text-body-md text-on-surface-variant mb-md">Học viên: <strong className="text-on-surface">{editingEnrollment.students?.full_name}</strong></p>
             <form onSubmit={handleUpdateEnrollment} className="space-y-md">
-              <div>
-                <label className="text-label-sm text-on-surface-variant mb-xs block">Ngày bắt đầu</label>
-                <input 
-                  type="date"
-                  name="startDate"
-                  defaultValue={editingEnrollment.start_date ? new Date(editingEnrollment.start_date).toISOString().split('T')[0] : ''}
-                  className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50"
-                />
+              <div className="grid grid-cols-2 gap-md">
+                <div>
+                  <label className="text-label-sm text-on-surface-variant mb-xs block">Ngày bắt đầu</label>
+                  <input 
+                    type="date"
+                    name="startDate"
+                    defaultValue={editingEnrollment.start_date ? new Date(editingEnrollment.start_date).toISOString().split('T')[0] : ''}
+                    className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-label-sm text-on-surface-variant mb-xs block">Ngày kết thúc</label>
+                  <input 
+                    type="date"
+                    name="endDate"
+                    defaultValue={editingEnrollment.end_date ? new Date(editingEnrollment.end_date).toISOString().split('T')[0] : ''}
+                    className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50"
+                  />
+                </div>
               </div>
+
               <div>
-                <label className="text-label-sm text-on-surface-variant mb-xs block">Ngày kết thúc</label>
-                <input 
-                  type="date"
-                  name="endDate"
-                  defaultValue={editingEnrollment.end_date ? new Date(editingEnrollment.end_date).toISOString().split('T')[0] : ''}
-                  className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50"
-                />
-              </div>
-              <div>
-                <label className="text-label-sm text-on-surface-variant mb-xs block">Trạng thái</label>
+                <label className="text-label-sm text-on-surface-variant mb-xs block">Trạng thái lớp</label>
                 <select
                   name="status"
                   defaultValue={editingEnrollment.status || 'Đang học'}
@@ -512,6 +632,58 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
                   <option value="Hoàn thành">Hoàn thành</option>
                 </select>
               </div>
+
+              <div className="pt-md border-t border-outline-variant/20">
+                <h3 className="text-label-lg font-medium mb-sm text-on-surface">Cập nhật học phí</h3>
+                <p className="text-body-sm text-on-surface-variant mb-md">Lưu ý: Nếu cập nhật gói học phí, công nợ sẽ được tính toán lại dựa trên gói mới và số tiền đã nộp.</p>
+                <div className="grid grid-cols-2 gap-md">
+                  <div>
+                    <label className="text-label-sm text-on-surface-variant mb-xs block">Hình thức đóng học phí</label>
+                    <select
+                      name="paymentPlan"
+                      value={editPaymentPlan}
+                      onChange={(e) => setEditPaymentPlan(e.target.value)}
+                      className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50"
+                    >
+                      <option value="1">1 tháng</option>
+                      <option value="2">2 tháng</option>
+                      <option value="3">3 tháng</option>
+                      <option value="6">6 tháng</option>
+                      <option value="full">Toàn khóa ({courseDuration} tháng)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-label-sm text-on-surface-variant mb-xs block">Chiết khấu (%)</label>
+                    <input 
+                      type="number"
+                      name="discountPercent"
+                      min="0"
+                      max="100"
+                      value={editDiscountPercent}
+                      onChange={(e) => setEditDiscountPercent(e.target.value)}
+                      className="w-full px-md py-sm bg-surface-container hover:bg-surface-container-high focus:bg-surface transition-colors rounded-xl outline-none text-body-md text-on-surface border border-transparent focus:border-primary/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-surface-container-low p-md rounded-xl border border-outline-variant/20 space-y-xs mt-md">
+                  <div className="flex justify-between text-body-sm text-on-surface-variant">
+                    <span>Giá gốc lớp học ({editPaymentPlan === 'full' ? courseDuration : editPaymentPlan} tháng):</span>
+                    <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(courseFee * (editPaymentPlan === 'full' ? courseDuration : parseInt(editPaymentPlan)))}</span>
+                  </div>
+                  {parseInt(editDiscountPercent) > 0 && (
+                    <div className="flex justify-between text-body-sm text-emerald-600">
+                      <span>Chiết khấu ({editDiscountPercent}%):</span>
+                      <span>-{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(courseFee * (editPaymentPlan === 'full' ? courseDuration : parseInt(editPaymentPlan)) * parseInt(editDiscountPercent) / 100)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-label-md font-bold text-on-background pt-xs border-t border-outline-variant/10">
+                    <span>Tổng tiền học phí gói này:</span>
+                    <span className="text-primary">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(courseFee * (editPaymentPlan === 'full' ? courseDuration : parseInt(editPaymentPlan)) * (1 - (parseInt(editDiscountPercent) || 0) / 100))}</span>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex justify-end gap-sm pt-md border-t border-outline-variant/20">
                 <button type="button" onClick={() => setEditingEnrollment(null)} className="btn-secondary">Hủy</button>
                 <button type="submit" disabled={isPending} className="btn-primary">

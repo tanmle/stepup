@@ -124,7 +124,7 @@ export async function syncTuitionStatuses() {
 
     if (diffDays < 0) {
       newStatus = 'Quá hạn';
-    } else if (diffDays <= 3) {
+    } else if (diffDays <= 7) {
       newStatus = 'Sắp đến hạn';
     } else {
       newStatus = 'Chưa đến hạn';
@@ -166,10 +166,13 @@ export async function generateMissingTuitions() {
       classes (
         course_id,
         courses (
-          tuition_fee
+          tuition_fee,
+          duration_months
         )
       )
-    `);
+    `)
+    // only active enrollments
+    .in('status', ['Đang học', 'Tạm nghỉ']); 
 
   if (enrollError) {
     console.error('Error fetching enrollments:', enrollError);
@@ -179,43 +182,78 @@ export async function generateMissingTuitions() {
   // 2. Get all existing tuition records
   const { data: existingTuitions, error: tuitionError } = await supabase
     .from('tuition_records')
-    .select('student_id, class_id');
+    .select('student_id, class_id, total_tuition, due_date')
+    .order('due_date', { ascending: true });
 
   if (tuitionError) {
     console.error('Error fetching tuition records:', tuitionError);
     throw new Error('Không thể lấy danh sách học phí');
   }
 
-  // 3. Find missing ones
-  const existingSet = new Set(
-    existingTuitions.map((t: any) => `${t.student_id}-${t.class_id}`)
-  );
+  const insertData: any[] = [];
+  const now = new Date();
+  const threshold = new Date();
+  threshold.setDate(now.getDate() + 15); // generate if due within 15 days
 
-  const missing = (enrollments || []).filter((e: any) => 
-    !existingSet.has(`${e.student_id}-${e.class_id}`)
-  );
+  for (const enr of enrollments || []) {
+    const classesInfo = enr.classes as any;
+    const fee = classesInfo?.courses?.tuition_fee || 0;
+    const duration = classesInfo?.courses?.duration_months || 1;
+    const maxTuition = fee * duration;
 
-  if (missing.length === 0) {
-    return { success: true, count: 0 };
+    if (fee === 0) continue; // skip free courses
+
+    const records = existingTuitions.filter(t => t.student_id === enr.student_id && t.class_id === enr.class_id);
+    
+    if (records.length === 0) {
+      // Completely missing, create for 1 month
+      const dueDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      insertData.push({
+        student_id: enr.student_id,
+        class_id: enr.class_id,
+        total_tuition: fee,
+        amount_paid: 0,
+        amount_owed: fee,
+        status: 'Chưa đến hạn',
+        due_date: dueDate,
+        discount: 0,
+        refund: 0
+      });
+    } else {
+      // Check if they need a new record
+      const totalBilled = records.reduce((sum, r) => sum + (r.total_tuition || 0), 0);
+      
+      if (totalBilled < maxTuition) {
+        const latestRecord = records[records.length - 1];
+        const monthsCovered = Math.round((latestRecord.total_tuition || 0) / fee) || 1;
+        
+        const latestDueDate = new Date(latestRecord.due_date || now);
+        const nextDueDate = new Date(latestDueDate);
+        nextDueDate.setMonth(nextDueDate.getMonth() + monthsCovered);
+        
+        if (nextDueDate <= threshold) {
+          const remainingTuition = maxTuition - totalBilled;
+          const nextBillAmount = Math.min(fee, remainingTuition);
+          
+          insertData.push({
+            student_id: enr.student_id,
+            class_id: enr.class_id,
+            total_tuition: nextBillAmount,
+            amount_paid: 0,
+            amount_owed: nextBillAmount,
+            status: 'Chưa đến hạn',
+            due_date: nextDueDate.toISOString().split('T')[0],
+            discount: 0,
+            refund: 0
+          });
+        }
+      }
+    }
   }
 
-  // 4. Prepare insert payload
-  const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  
-  const insertData = missing.map((e: any) => {
-    const fee = e.classes?.courses?.tuition_fee || 0;
-    return {
-      student_id: e.student_id,
-      class_id: e.class_id,
-      total_tuition: fee,
-      amount_paid: 0,
-      amount_owed: fee,
-      status: 'Chưa đến hạn',
-      due_date: dueDate,
-      discount: 0,
-      refund: 0
-    };
-  });
+  if (insertData.length === 0) {
+    return { success: true, count: 0 };
+  }
 
   // 5. Insert
   const { error: insertError } = await supabase
@@ -224,9 +262,9 @@ export async function generateMissingTuitions() {
 
   if (insertError) {
     console.error('Error inserting missing tuitions:', insertError);
-    throw new Error('Không thể tạo học phí');
+    throw new Error('Không thể tạo học phí: ' + insertError.message);
   }
 
   revalidatePath('/tuition');
-  return { success: true, count: missing.length };
+  return { success: true, count: insertData.length };
 }

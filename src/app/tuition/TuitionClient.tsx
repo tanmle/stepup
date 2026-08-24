@@ -404,7 +404,23 @@ export default function TuitionClient({ initialRecords, kpi, settings }: Tuition
                     {record.dueDate}
                   </td>
                   <td className="px-md py-md">
-                    <StatusBadge status={record.status} />
+                    {(() => {
+                      if (record.status === 'Sắp đến hạn' && record.dueDate) {
+                        const [day, month, year] = record.dueDate.split('/');
+                        const due = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                        due.setHours(0, 0, 0, 0);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const diff = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            <StatusBadge status="Sắp đến hạn" />
+                            <span className="text-[11px] text-amber-600 font-medium">Còn {diff} ngày</span>
+                          </div>
+                        );
+                      }
+                      return <StatusBadge status={record.status} />;
+                    })()}
                   </td>
                   <td className="px-md py-md">
                     <div className="flex gap-xs">

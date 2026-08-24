@@ -91,7 +91,7 @@ export default function CoursesClient({ initialCourses }: { initialCourses: any[
                 <th className="p-md text-label-sm font-semibold text-on-surface-variant whitespace-nowrap">Mã</th>
                 <th className="p-md text-label-sm font-semibold text-on-surface-variant whitespace-nowrap">Tên khóa học</th>
                 <th className="p-md text-label-sm font-semibold text-on-surface-variant whitespace-nowrap">Chương trình / Cấp độ</th>
-                <th className="p-md text-label-sm font-semibold text-on-surface-variant text-right whitespace-nowrap">Học phí</th>
+                <th className="p-md text-label-sm font-semibold text-on-surface-variant text-right whitespace-nowrap">Tổng học phí</th>
                 <th className="p-md text-label-sm font-semibold text-on-surface-variant text-center whitespace-nowrap">Thời lượng</th>
                 <th className="p-md text-label-sm font-semibold text-on-surface-variant whitespace-nowrap">Trạng thái</th>
                 <th className="p-md text-label-sm font-semibold text-on-surface-variant text-right whitespace-nowrap">Thao tác</th>
@@ -112,9 +112,14 @@ export default function CoursesClient({ initialCourses }: { initialCourses: any[
                       <span className="text-label-sm text-on-surface-variant">{course.level}</span>
                     </td>
                     <td className="p-md text-right whitespace-nowrap">
-                      <span className="font-medium text-primary text-body-md">
-                        {formatVND(course.tuition_fee)}
+                      <span className="font-medium text-primary text-body-md block">
+                        {formatVND(course.tuition_fee * (course.duration_months || 1))}
                       </span>
+                      {course.duration_months > 1 && (
+                        <span className="text-label-sm text-on-surface-variant">
+                          ({formatVND(course.tuition_fee)}/tháng)
+                        </span>
+                      )}
                     </td>
                     <td className="p-md text-center whitespace-nowrap">
                       <span className="text-body-md text-on-surface block">{course.duration_months} tháng</span>

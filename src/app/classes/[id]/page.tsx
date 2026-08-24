@@ -14,7 +14,8 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
     .select(`
       *,
       teacher:teachers!classes_teacher_id_fkey(full_name),
-      assistant:teachers!classes_assistant_teacher_id_fkey(full_name)
+      assistant:teachers!classes_assistant_teacher_id_fkey(full_name),
+      courses(tuition_fee, duration_months)
     `)
     .eq('id', id)
     .single();
@@ -33,6 +34,21 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
       students(id, full_name, code, avatar_initials, avatar_color)
     `)
     .eq('class_id', id);
+
+  // Fetch tuition records for this class to show in student list
+  const { data: tuitions } = await supabase
+    .from('tuition_records')
+    .select('student_id, amount_owed, amount_paid, total_tuition, discount')
+    .eq('class_id', id);
+
+  const enrollmentsWithTuition = (enrollments || []).map(enr => {
+    // Find the latest/relevant tuition record for this student in this class
+    const t = tuitions?.find(t => t.student_id === enr.student_id);
+    return {
+      ...enr,
+      tuition: t || null
+    };
+  });
 
   // Fetch class sessions
   const { data: sessions } = await supabase
@@ -58,7 +74,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
   return (
     <ClassDetailClient 
       cls={cls} 
-      enrollments={enrollments || []} 
+      enrollments={enrollmentsWithTuition || []} 
       sessions={sessions || []} 
       rooms={rooms || []}
       students={students || []}

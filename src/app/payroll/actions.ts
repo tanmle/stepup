@@ -67,6 +67,7 @@ export async function generateSalaryRecord(
   }
 
   const isHourly = teacher.salary_type === 'hourly';
+  const isFixed = teacher.salary_type === 'fixed';
   const rate = teacher.salary_rate || 0;
 
   // Fetch attendance for the month
@@ -87,26 +88,48 @@ export async function generateSalaryRecord(
 
   let totalHours = 0;
   let sessionsCount = 0;
+  let baseSalary = 0;
+  let deductions = 0;
 
-  if (attendance) {
-    if (isHourly) {
-      attendance.forEach(a => {
-        if (a.type !== 'Nghỉ phép') {
-          totalHours += Number(a.hours_worked || 0);
-        }
-      });
-    } else {
-      attendance.forEach(a => {
-        if (a.type === 'Dạy học') {
-          sessionsCount += 1;
-        }
-      });
+  if (isFixed) {
+    // Fixed salary: count actual Sundays, working days = total - Sundays
+    let sundayCount = 0;
+    for (let d = 1; d <= lastDay; d++) {
+      if (new Date(year, month - 1, d).getDay() === 0) sundayCount++;
     }
+    const workingDays = lastDay - sundayCount;
+    const dailyRate = rate / workingDays;
+
+    // Count days off from attendance records (type = 'Nghỉ phép' or 'Vắng mặt')
+    const daysOff = (attendance || []).filter(
+      (a: any) => a.type === 'Nghỉ phép' || a.type === 'Vắng mặt'
+    );
+    const totalDaysOff = daysOff.length;
+
+    // 1 paid day off per month (doesn't accumulate)
+    const unpaidDaysOff = Math.max(0, totalDaysOff - 1);
+
+    baseSalary = rate;
+    deductions = Math.round(unpaidDaysOff * dailyRate);
+    totalHours = workingDays - totalDaysOff; // actual worked days
+    sessionsCount = workingDays;
+  } else if (isHourly) {
+    (attendance || []).forEach((a: any) => {
+      if (a.type !== 'Nghỉ phép') {
+        totalHours += Number(a.hours_worked || 0);
+      }
+    });
+    baseSalary = totalHours * rate;
+  } else {
+    (attendance || []).forEach((a: any) => {
+      if (a.type === 'Dạy học') {
+        sessionsCount += 1;
+      }
+    });
+    baseSalary = sessionsCount * rate;
   }
 
-  const quantity = isHourly ? totalHours : sessionsCount;
-  const baseSalary = quantity * rate;
-  const netSalary = baseSalary + bonus - fine; // simplified deductions
+  const netSalary = baseSalary - deductions + bonus - fine;
 
   const salaryData = {
     teacher_id: teacherId,
@@ -118,7 +141,7 @@ export async function generateSalaryRecord(
     base_salary: baseSalary,
     bonus: bonus,
     fine: fine,
-    deductions: 0, // unused for now, combined into fine
+    deductions: deductions,
     net_salary: netSalary,
     status: 'Chưa thanh toán',
     notes: notes
@@ -131,6 +154,72 @@ export async function generateSalaryRecord(
   if (error) {
     console.error('Error saving salary record:', error);
     throw new Error('Không thể lưu phiếu lương. Lỗi: ' + error.message);
+  }
+
+  revalidatePath('/payroll');
+  revalidatePath(`/teachers/${teacherId}`);
+}
+
+// --- Fixed salary day off management ---
+
+export async function markFixedSalaryDayOff(teacherId: string, date: string, type: 'Nghỉ phép' | 'Vắng mặt', note?: string) {
+  const supabase = await createClient();
+
+  // Check if record already exists for this date
+  const { data: existing } = await supabase
+    .from('teacher_attendance')
+    .select('id')
+    .eq('teacher_id', teacherId)
+    .eq('date', date)
+    .maybeSingle();
+
+  if (existing) {
+    // Update existing record
+    const { error } = await supabase
+      .from('teacher_attendance')
+      .update({ type, note: note || null, hours_worked: 0 })
+      .eq('id', existing.id);
+
+    if (error) {
+      console.error('Error updating day off:', error);
+      throw new Error('Lỗi khi cập nhật ngày nghỉ');
+    }
+  } else {
+    // Insert new record
+    const { error } = await supabase
+      .from('teacher_attendance')
+      .insert([{
+        teacher_id: teacherId,
+        date,
+        type,
+        note: note || null,
+        hours_worked: 0,
+        check_in: null,
+        check_out: null,
+      }]);
+
+    if (error) {
+      console.error('Error marking day off:', error);
+      throw new Error('Lỗi khi đánh dấu ngày nghỉ');
+    }
+  }
+
+  revalidatePath('/payroll');
+  revalidatePath(`/teachers/${teacherId}`);
+}
+
+export async function removeFixedSalaryDayOff(teacherId: string, date: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('teacher_attendance')
+    .delete()
+    .eq('teacher_id', teacherId)
+    .eq('date', date);
+
+  if (error) {
+    console.error('Error removing day off:', error);
+    throw new Error('Lỗi khi xóa ngày nghỉ');
   }
 
   revalidatePath('/payroll');

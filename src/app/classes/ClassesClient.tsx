@@ -135,7 +135,7 @@ export default function ClassesClient({ initialClasses }: ClassesClientProps) {
             </thead>
             <tbody className="divide-y divide-outline-variant/10">
               {paginated.map((c: any) => (
-                <tr key={c.id} className="hover:bg-primary/[0.02] transition-colors group">
+                <tr key={c.id} className="hover:bg-primary/[0.02] transition-colors group cursor-pointer" onClick={() => router.push('/classes/' + c.id)}>
                   <td className="px-md py-md">
                     <div className="flex flex-col">
                       <div className="flex items-center gap-xs">
@@ -167,20 +167,20 @@ export default function ClassesClient({ initialClasses }: ClassesClientProps) {
                     <StatusBadge status={c.status} />
                   </td>
                   <td className="px-md py-md">
-                    <div className="flex gap-xs opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                    <div className="flex gap-xs md:opacity-0 md:group-hover:opacity-100 transition-opacity justify-end">
                       <button 
-                        onClick={() => router.push('/classes/' + c.id)}
-                        className="p-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors"
+                        onClick={(e) => { e.stopPropagation(); router.push('/classes/' + c.id); }}
+                        className="hidden md:inline-flex p-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors"
                       >
                         <span className="material-symbols-outlined text-[18px]">visibility</span>
                       </button>
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleDelete(c.id); }}
                         disabled={isPending}
-                        className="p-xs text-error hover:bg-error-container/20 rounded-lg transition-colors disabled:opacity-50"
+                        className="p-sm md:p-xs text-error hover:bg-error-container/20 rounded-lg transition-colors disabled:opacity-50"
                         title="Xóa lớp học"
                       >
-                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                        <span className="material-symbols-outlined text-[20px] md:text-[18px]">delete</span>
                       </button>
                     </div>
                   </td>

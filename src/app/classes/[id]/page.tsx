@@ -71,6 +71,12 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
     .eq('status', 'Đang học')
     .order('full_name');
 
+  // Fetch settings for bank info
+  const { data: settings } = await supabase
+    .from('center_settings')
+    .select('*')
+    .single();
+
   return (
     <ClassDetailClient 
       cls={cls} 
@@ -78,6 +84,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
       sessions={sessions || []} 
       rooms={rooms || []}
       students={students || []}
+      settings={settings || {}}
     />
   );
 }

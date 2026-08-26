@@ -16,9 +16,10 @@ interface ClassDetailClientProps {
   sessions: any[];
   rooms: any[];
   students: any[];
+  settings: any;
 }
 
-export default function ClassDetailClient({ cls, enrollments, sessions, rooms, students }: ClassDetailClientProps) {
+export default function ClassDetailClient({ cls, enrollments, sessions, rooms, students, settings }: ClassDetailClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'schedule'>('overview');
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
@@ -850,7 +851,7 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            <form onSubmit={handleCollect} className="p-md flex flex-col gap-md">
+            <form onSubmit={handleCollect} className="p-md flex flex-col gap-md overflow-y-auto">
               <div>
                 <p className="text-label-sm text-on-surface-variant mb-1">Học viên</p>
                 <p className="text-body-lg font-medium">{selectedRecord.student.fullName}</p>
@@ -904,6 +905,32 @@ export default function ClassDetailClient({ cls, enrollments, sessions, rooms, s
                   <option value="Tiền mặt">Tiền mặt</option>
                 </select>
               </div>
+
+              {payMethod === 'Chuyển khoản' && (
+                <div className="flex flex-col items-center bg-gray-50 border rounded-lg p-sm mt-xs text-center">
+                  {settings?.bank_name && settings?.bank_account ? (
+                    <>
+                      <p className="text-xs text-gray-500 mb-2">Quét mã QR để thanh toán</p>
+                      <img 
+                        src={`https://img.vietqr.io/image/${settings.bank_name === 'MBBank' ? 'MB' : settings.bank_name}-${settings.bank_account}-compact2.png?amount=${payAmount ? parseInt(payAmount.replace(/\D/g,'')) : 0}&addInfo=Thu hoc phi ${selectedRecord.student.code} ${selectedRecord.className}&accountName=${settings.bank_owner || ''}`}
+                        alt="QR Code"
+                        className="w-40 h-40 object-contain bg-white rounded-md p-1 border shadow-sm"
+                      />
+                      <div className="mt-2 text-center text-xs space-y-1">
+                        <p>NH: <span className="font-semibold">{settings.bank_name}</span></p>
+                        <p>STK: <span className="font-semibold">{settings.bank_account}</span></p>
+                        <p>CTK: <span className="font-semibold uppercase">{settings.bank_owner}</span></p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-sm py-md text-on-surface-variant flex flex-col items-center gap-2">
+                      <span className="material-symbols-outlined text-[32px] text-amber-500">warning</span>
+                      <p className="text-sm">Chưa có thông tin tài khoản ngân hàng của Trung tâm.</p>
+                      <p className="text-xs">Vui lòng vào mục <span className="font-semibold">Cài đặt</span> để cập nhật thông tin chuyển khoản.</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="text-label-sm text-on-surface-variant mb-1 block">Ghi chú</label>

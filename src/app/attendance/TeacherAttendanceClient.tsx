@@ -176,7 +176,7 @@ export default function TeacherAttendanceClient({ teachers, initialAttendance }:
                     <span className="text-label-sm font-medium text-on-surface">{day}</span>
                     <button 
                       onClick={() => openAttModal(day)}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 text-primary hover:bg-primary/10 rounded transition-all"
+                      className="p-0.5 text-primary hover:bg-primary/10 rounded transition-all"
                     >
                       <span className="material-symbols-outlined text-[16px]">add</span>
                     </button>

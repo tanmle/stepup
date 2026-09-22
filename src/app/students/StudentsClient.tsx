@@ -233,7 +233,7 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
                       type="checkbox"
                       checked={selectedIds.has(student.id)}
                       onChange={() => toggleSelect(student.id)}
-                      className="rounded border-outline-variant opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="rounded border-outline-variant transition-opacity"
                     />
                   </td>
                   <td className="px-md py-md">
@@ -280,7 +280,7 @@ export default function StudentsPage({ initialStudents }: StudentsClientProps) {
                     )}
                   </td>
                   <td className="px-md py-md">
-                    <div className="flex gap-xs opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                    <div className="flex gap-xs transition-opacity justify-end">
                       <Link href={`/students/${student.id}`} className="p-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors">
                         <span className="material-symbols-outlined text-[18px]">person</span>
                       </Link>

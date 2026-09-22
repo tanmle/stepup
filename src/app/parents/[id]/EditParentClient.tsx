@@ -356,7 +356,7 @@ export default function EditParentClient({ parent, allStudents }: EditParentClie
                     </Link>
                     <button 
                       onClick={(e) => { e.preventDefault(); handleUnlinkStudent(student.id); }}
-                      className="absolute top-2 right-2 p-1 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-full transition-colors z-10 opacity-0 group-hover:opacity-100"
+                      className="absolute top-2 right-2 p-1 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-full transition-colors z-10"
                       title="Gỡ liên kết"
                       disabled={isPending}
                     >

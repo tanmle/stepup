@@ -14,7 +14,8 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
     .select(`
       *,
       teacher:teachers!classes_teacher_id_fkey(full_name),
-      assistant:teachers!classes_assistant_teacher_id_fkey(full_name)
+      assistant:teachers!classes_assistant_teacher_id_fkey(full_name),
+      courses(tuition_fee, duration_months)
     `)
     .eq('id', id)
     .single();
@@ -33,6 +34,21 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
       students(id, full_name, code, avatar_initials, avatar_color)
     `)
     .eq('class_id', id);
+
+  // Fetch tuition records for this class to show in student list
+  const { data: tuitions } = await supabase
+    .from('tuition_records')
+    .select('id, student_id, amount_owed, amount_paid, total_tuition, discount, refund, due_date, status')
+    .eq('class_id', id);
+
+  const enrollmentsWithTuition = (enrollments || []).map(enr => {
+    // Find all tuition records for this student in this class
+    const studentTuitions = tuitions?.filter(t => t.student_id === enr.student_id) || [];
+    return {
+      ...enr,
+      tuitions: studentTuitions
+    };
+  });
 
   // Fetch class sessions
   const { data: sessions } = await supabase
@@ -55,13 +71,20 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
     .eq('status', 'Đang học')
     .order('full_name');
 
+  // Fetch settings for bank info
+  const { data: settings } = await supabase
+    .from('center_settings')
+    .select('*')
+    .single();
+
   return (
     <ClassDetailClient 
       cls={cls} 
-      enrollments={enrollments || []} 
+      enrollments={enrollmentsWithTuition || []} 
       sessions={sessions || []} 
       rooms={rooms || []}
       students={students || []}
+      settings={settings || {}}
     />
   );
 }

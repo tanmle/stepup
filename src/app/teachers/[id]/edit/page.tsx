@@ -43,10 +43,12 @@ export default async function EditTeacherPage({ params }: Props) {
     englishLevel: teacher.english_level,
     salaryType: teacher.salary_type,
     salaryRate: teacher.salary_rate,
+    assistantSalaryRate: teacher.assistant_salary_rate,
     certificates: teacher.certificates || [],
     specializations: teacher.specializations || [],
     teachingStrengths: teacher.teaching_strengths || [],
     status: teacher.status,
+    allowances: teacher.allowances || {},
   };
 
   return <EditTeacherClient teacher={formattedTeacher} />;

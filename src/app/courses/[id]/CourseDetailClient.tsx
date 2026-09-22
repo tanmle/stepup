@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { updateCourse } from '../actions';
 import CurrencyInput from '@/components/ui/CurrencyInput';
+import { formatVND } from '@/utils/format';
 
 export default function CourseDetailClient({ initialCourse }: { initialCourse: any }) {
   const router = useRouter();
@@ -107,7 +108,7 @@ export default function CourseDetailClient({ initialCourse }: { initialCourse: a
           </div>
 
           <div>
-            <label className="text-label-sm text-on-surface-variant block mb-xs">Học phí (VND) *</label>
+            <label className="text-label-sm text-on-surface-variant block mb-xs">Học phí / tháng (VND) *</label>
             <CurrencyInput
               name="tuition_fee"
               required
@@ -143,6 +144,13 @@ export default function CourseDetailClient({ initialCourse }: { initialCourse: a
             </div>
           </div>
           
+          <div className="col-span-1 md:col-span-2 bg-surface-container-low p-md rounded-xl border border-outline-variant/20 flex justify-between items-center">
+            <span className="text-label-md text-on-surface-variant">Tổng học phí dự kiến:</span>
+            <span className="text-title-lg font-bold text-primary">
+              {formatVND((parseInt(formData.tuition_fee) || 0) * (parseInt(formData.duration_months) || 1))}
+            </span>
+          </div>
+
           <div>
             <label className="text-label-sm text-on-surface-variant block mb-xs">Trạng thái *</label>
             <select

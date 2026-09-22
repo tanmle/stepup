@@ -122,8 +122,12 @@ export async function addStudent(formData: FormData) {
     const { data: cls } = await supabase.from('classes').select('course_id').eq('id', classId).single();
     let tuition = 0;
     if (cls?.course_id) {
-      const { data: course } = await supabase.from('courses').select('tuition_fee').eq('id', cls.course_id).single();
-      if (course) tuition = course.tuition_fee || 0;
+      const { data: course } = await supabase.from('courses').select('tuition_fee, duration_months').eq('id', cls.course_id).single();
+      if (course) {
+        const fee = course.tuition_fee || 0;
+        const months = course.duration_months || 1;
+        tuition = fee * months;
+      }
     }
 
     // Tính ngày 5 tháng tiếp theo
@@ -190,8 +194,12 @@ export async function enrollStudent(studentId: string, classId: string, startDat
   
   let tuition = 0;
   if (cls?.course_id) {
-    const { data: course } = await supabase.from('courses').select('tuition_fee').eq('id', cls.course_id).single();
-    if (course) tuition = course.tuition_fee || 0;
+    const { data: course } = await supabase.from('courses').select('tuition_fee, duration_months').eq('id', cls.course_id).single();
+    if (course) {
+      const fee = course.tuition_fee || 0;
+      const months = course.duration_months || 1;
+      tuition = fee * months;
+    }
   }
 
   // Tính ngày 5 tháng tiếp theo

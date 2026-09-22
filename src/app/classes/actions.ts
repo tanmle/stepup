@@ -96,7 +96,7 @@ export async function updateClass(formData: FormData) {
   return { success: true };
 }
 
-export async function enrollStudentInClass(studentId: string, classId: string, startDate?: string) {
+export async function enrollStudentInClass(studentId: string, classId: string, startDate?: string, paymentPlan: string = '1', discountPercent: number = 0) {
   const supabase = await createClient();
 
   // Check if already enrolled
@@ -111,6 +111,26 @@ export async function enrollStudentInClass(studentId: string, classId: string, s
     throw new Error('Học viên này đã có trong lớp.');
   }
 
+  // Fetch class price
+  const { data: cls } = await supabase.from('classes').select('course_id').eq('id', classId).single();
+  
+  let fee = 0;
+  let duration = 1;
+  if (cls?.course_id) {
+    const { data: course } = await supabase.from('courses').select('tuition_fee, duration_months').eq('id', cls.course_id).single();
+    if (course) {
+      fee = course.tuition_fee || 0;
+      duration = course.duration_months || 1;
+    }
+  }
+
+  // Calculate registered months and end_date
+  const registeredMonths = paymentPlan === 'full' ? duration : (parseInt(paymentPlan) || 1);
+  const start = startDate ? new Date(startDate) : new Date();
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + registeredMonths);
+  const end_date = end.toISOString().split('T')[0];
+
   // Insert enrollment
   const { error } = await supabase.from('enrollments').insert([
     {
@@ -119,6 +139,7 @@ export async function enrollStudentInClass(studentId: string, classId: string, s
       status: 'Đang học',
       enrollment_date: new Date().toISOString().split('T')[0],
       start_date: startDate || new Date().toISOString().split('T')[0],
+      end_date: end_date,
       sessions_completed: 0,
       attendance_rate: 100,
     }
@@ -129,15 +150,10 @@ export async function enrollStudentInClass(studentId: string, classId: string, s
     throw new Error('Không thể thêm học viên vào lớp');
   }
 
-  // Fetch class price and create tuition record
-  const { data: cls } = await supabase.from('classes').select('course_id').eq('id', classId).single();
+  // Create initial tuition record (for 1 month only)
+  const discountAmount = fee * (discountPercent / 100);
+  const amountOwed = Math.max(0, fee - discountAmount);
   
-  let tuition = 0;
-  if (cls?.course_id) {
-    const { data: course } = await supabase.from('courses').select('tuition_fee').eq('id', cls.course_id).single();
-    if (course) tuition = course.tuition_fee || 0;
-  }
-
   // Tính ngày 5 tháng tiếp theo
   const _today = new Date();
   const _day = _today.getDate();
@@ -145,17 +161,24 @@ export async function enrollStudentInClass(studentId: string, classId: string, s
   let _month = _today.getMonth();
   if (_day >= 5) { _month += 1; if (_month > 11) { _month = 0; _year += 1; } }
   const dueDate = `${_year}-${String(_month + 1).padStart(2, '0')}-05`;
-  await supabase.from('tuition_records').insert([
+  
+  const { error: insertError } = await supabase.from('tuition_records').insert([
     {
       student_id: studentId,
       class_id: classId,
-      total_tuition: tuition,
+      total_tuition: fee,
       amount_paid: 0,
-      amount_owed: tuition,
-      status: 'Chưa đến hạn',
-      due_date: dueDate,
+      amount_owed: amountOwed,
+      discount: discountAmount,
+      status: amountOwed === 0 ? 'Đã thu đủ' : 'Chưa đến hạn',
+      due_date: dueDate
     }
   ]);
+
+  if (insertError) {
+    console.error('Error inserting tuition:', insertError);
+    throw new Error('Không thể tạo phiếu thu: ' + insertError.message);
+  }
 
   revalidatePath(`/classes/${classId}`);
   revalidatePath('/classes');
@@ -416,7 +439,14 @@ export async function generateScheduleSessions(classId: string) {
   return { success: true, count: insertedCount, message: `Đã sinh ${insertedCount} buổi học thành công.` };
 }
 
-export async function updateEnrollment(enrollmentId: string, startDate: string | null, endDate: string | null, status?: string) {
+export async function updateEnrollment(
+  enrollmentId: string, 
+  startDate: string | null, 
+  endDate: string | null, 
+  status?: string,
+  paymentPlan?: string,
+  discountPercent?: number
+) {
   const supabase = await createClient();
   const updateData: any = {
     start_date: startDate,
@@ -434,11 +464,64 @@ export async function updateEnrollment(enrollmentId: string, startDate: string |
     throw new Error('Không thể cập nhật học viên');
   }
 
-  const { data } = await supabase.from('enrollments').select('class_id, student_id').eq('id', enrollmentId).single();
-  if (data) {
-    revalidatePath(`/classes/${data.class_id}`);
-    revalidatePath(`/students/${data.student_id}`);
+  const { data: enr } = await supabase.from('enrollments').select('class_id, student_id, start_date').eq('id', enrollmentId).single();
+  
+  if (enr && paymentPlan && discountPercent !== undefined) {
+    // Check if we can find the associated course to calculate tuition
+    const { data: cls } = await supabase.from('classes').select('course_id').eq('id', enr.class_id).single();
+    if (cls?.course_id) {
+      const { data: course } = await supabase.from('courses').select('tuition_fee, duration_months').eq('id', cls.course_id).single();
+      if (course) {
+        const fee = course.tuition_fee || 0;
+        const discountAmount = fee * (discountPercent / 100);
+        const registeredMonths = paymentPlan === 'full' ? (course.duration_months || 1) : parseInt(paymentPlan);
+        
+        // Compute new end_date based on payment plan and start date
+        const baseStartDate = startDate || enr.start_date || new Date().toISOString().split('T')[0];
+        const start = new Date(baseStartDate);
+        const end = new Date(start);
+        end.setMonth(end.getMonth() + registeredMonths);
+        const newEndDate = end.toISOString().split('T')[0];
+
+        // Update end_date if it was inferred from paymentPlan
+        await supabase.from('enrollments').update({ end_date: newEndDate }).eq('id', enrollmentId);
+
+        // Fetch LATEST tuition record to apply the new discount for the CURRENT month
+        const { data: tr } = await supabase
+          .from('tuition_records')
+          .select('id, amount_paid')
+          .eq('student_id', enr.student_id)
+          .eq('class_id', enr.class_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+          
+        if (tr) {
+          const amountPaid = tr.amount_paid || 0;
+          const newTuition = fee;
+          const amountOwed = Math.max(0, newTuition - discountAmount - amountPaid);
+          
+          const { error: updateError } = await supabase.from('tuition_records').update({
+            total_tuition: newTuition,
+            discount: discountAmount,
+            amount_owed: amountOwed,
+            status: amountOwed === 0 ? 'Đã thu đủ' : (amountOwed < newTuition - discountAmount ? 'Đang thu' : 'Chưa đến hạn')
+          }).eq('id', tr.id);
+          
+          if (updateError) {
+             console.error("Error updating tuition:", updateError);
+             throw new Error("Không thể cập nhật học phí: " + updateError.message);
+          }
+        }
+      }
+    }
   }
+
+  if (enr) {
+    revalidatePath(`/classes/${enr.class_id}`);
+    revalidatePath(`/students/${enr.student_id}`);
+  }
+
   
   return { success: true };
 }

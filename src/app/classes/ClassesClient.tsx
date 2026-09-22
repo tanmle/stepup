@@ -126,7 +126,7 @@ export default function ClassesClient({ initialClasses }: ClassesClientProps) {
           <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-outline-variant/20 bg-surface-container-low/50">
-                {['Tên lớp', 'Giáo viên', 'Chương trình', 'Phòng học', 'Sĩ số', 'Lịch học', 'Ngày bắt đầu', 'Ngày kết thúc', 'Trạng thái', ''].map((h) => (
+                {['Tên lớp', 'Khóa học', 'Giáo viên', 'Chương trình', 'Phòng học', 'Sĩ số', 'Lịch học', 'Ngày bắt đầu', 'Ngày kết thúc', 'Trạng thái', ''].map((h) => (
                   <th key={h} className="px-md py-md text-left text-label-sm text-on-surface-variant uppercase tracking-wider">
                     {h}
                   </th>
@@ -146,6 +146,7 @@ export default function ClassesClient({ initialClasses }: ClassesClientProps) {
                       <span className="font-semibold text-body-md text-on-background mt-1">{c.name}</span>
                     </div>
                   </td>
+                  <td className="px-md py-md text-body-md text-on-surface-variant">{c.courseName}</td>
                   <td className="px-md py-md">
                     <div className="flex items-center gap-xs">
                       <span className="material-symbols-outlined text-[16px] text-on-surface-variant">person</span>
@@ -188,7 +189,7 @@ export default function ClassesClient({ initialClasses }: ClassesClientProps) {
               ))}
               {paginated.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="text-center py-xl text-on-surface-variant">Không tìm thấy lớp học nào</td>
+                  <td colSpan={11} className="text-center py-xl text-on-surface-variant">Không tìm thấy lớp học nào</td>
                 </tr>
               )}
             </tbody>

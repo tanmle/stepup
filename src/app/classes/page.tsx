@@ -16,6 +16,7 @@ export default async function ClassesPage() {
       teacher:teachers!classes_teacher_id_fkey(full_name),
       assistant:teachers!classes_assistant_teacher_id_fkey(full_name),
       room:rooms(name),
+      courses(name),
       enrollments(status)
     `)
     .order('created_at', { ascending: false });
@@ -30,6 +31,7 @@ export default async function ClassesPage() {
     code: c.code,
     name: c.name,
     program: c.program,
+    courseName: c.courses ? (c.courses as any).name : '—',
     teacherName: c.teacher ? (c.teacher as any).full_name : 'Chưa phân công',
     roomName: c.room ? (c.room as any).name : 'Chưa xếp phòng',
     capacity: c.capacity,

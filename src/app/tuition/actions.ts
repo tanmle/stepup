@@ -3,6 +3,24 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
+/** Trả về ngày 5 của tháng tiếp theo (nếu hôm nay >= ngày 5) hoặc ngày 5 tháng này (nếu hôm nay < ngày 5) */
+function getNextDueDate(): string {
+  const today = new Date();
+  const day = today.getDate();
+  let year = today.getFullYear();
+  let month = today.getMonth(); // 0-indexed
+
+  if (day >= 5) {
+    month += 1;
+    if (month > 11) {
+      month = 0;
+      year += 1;
+    }
+  }
+
+  return `${year}-${String(month + 1).padStart(2, '0')}-05`;
+}
+
 export async function collectTuition(formData: FormData) {
   const supabase = await createClient();
 
@@ -43,10 +61,8 @@ export async function collectTuition(formData: FormData) {
   if (newAmountOwed <= 0) {
     newStatus = 'Đã thu đủ';
   } else if (amount > 0) {
-    // Trượt hạn chót (due_date) thêm 30 ngày kể từ ngày nộp tiền
-    const nextDueDate = new Date();
-    nextDueDate.setDate(nextDueDate.getDate() + 30);
-    newDueDate = nextDueDate.toISOString().split('T')[0];
+    // Trượt hạn chót (due_date) đến ngày 5 tháng tiếp theo
+    newDueDate = getNextDueDate();
     newStatus = 'Chưa đến hạn';
   }
 
@@ -200,7 +216,7 @@ export async function generateMissingTuitions() {
   }
 
   // 4. Prepare insert payload
-  const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const dueDate = getNextDueDate();
   
   const insertData = missing.map((e: any) => {
     const fee = e.classes?.courses?.tuition_fee || 0;

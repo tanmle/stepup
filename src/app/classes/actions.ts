@@ -138,7 +138,13 @@ export async function enrollStudentInClass(studentId: string, classId: string, s
     if (course) tuition = course.tuition_fee || 0;
   }
 
-  const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  // Tính ngày 5 tháng tiếp theo
+  const _today = new Date();
+  const _day = _today.getDate();
+  let _year = _today.getFullYear();
+  let _month = _today.getMonth();
+  if (_day >= 5) { _month += 1; if (_month > 11) { _month = 0; _year += 1; } }
+  const dueDate = `${_year}-${String(_month + 1).padStart(2, '0')}-05`;
   await supabase.from('tuition_records').insert([
     {
       student_id: studentId,

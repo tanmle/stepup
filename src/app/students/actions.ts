@@ -126,7 +126,10 @@ export async function addStudent(formData: FormData) {
       if (course) tuition = course.tuition_fee || 0;
     }
 
-    const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    // Tính ngày 5 tháng tiếp theo
+    const _t = new Date(); const _d = _t.getDate(); let _y = _t.getFullYear(); let _m = _t.getMonth();
+    if (_d >= 5) { _m += 1; if (_m > 11) { _m = 0; _y += 1; } }
+    const dueDate = `${_y}-${String(_m + 1).padStart(2, '0')}-05`;
     await supabase.from('tuition_records').insert([
       {
         student_id: student.id,
@@ -191,7 +194,10 @@ export async function enrollStudent(studentId: string, classId: string, startDat
     if (course) tuition = course.tuition_fee || 0;
   }
 
-  const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  // Tính ngày 5 tháng tiếp theo
+  const _t2 = new Date(); const _d2 = _t2.getDate(); let _y2 = _t2.getFullYear(); let _m2 = _t2.getMonth();
+  if (_d2 >= 5) { _m2 += 1; if (_m2 > 11) { _m2 = 0; _y2 += 1; } }
+  const dueDate = `${_y2}-${String(_m2 + 1).padStart(2, '0')}-05`;
   await supabase.from('tuition_records').insert([
     {
       student_id: studentId,
